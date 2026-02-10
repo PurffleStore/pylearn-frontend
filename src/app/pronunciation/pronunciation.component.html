@@ -1,0 +1,116 @@
+<div class="pp-page">
+  <div class="pp-header">
+    <h1>Pronunciation Practice</h1>
+  </div>
+
+  <div class="pp-main">
+    <div class="pp-left">
+      <div class="word-card">
+        <div class="word-img-wrap">
+          <div class="video-frame square">
+            <video [src]="current.imgSrc" autoplay loop muted preload="auto" playsinline>
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+
+        <div class="word-text">{{ current.word }}</div>
+
+        <div class="phonetic-pill">
+          {{ current.phonetics }}
+        </div>
+
+        <div class="image-container">
+          <img src="assets/pronunciation/audio.png" alt="Play audio" class="round-image" (click)="playWordAudio()">
+        </div>
+      </div>
+    </div>
+
+    <div class="pp-center">
+      <div class="word-card center-card">
+        <div class="center-media">
+          <video *ngIf="!showVideo"
+                 src="assets/pronunciation/listening.mp4"
+                 class="media-rounded"
+                 autoplay loop muted
+                 (ended)="onVideoEnded()"
+                 height="469" width="521">
+            Your browser does not support the video tag.
+          </video>
+
+          <video *ngIf="showVideo"
+                 #videoEl
+                 [src]="videoSrc"
+                 class="media-rounded"
+                 (play)="onVideoPlay()"
+                 (pause)="onVideoPause()"
+                 autoplay
+                 muted
+                 (ended)="onVideoEnded()"
+                 height="469" width="521">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+
+        <div class="controls-row">
+          <img class="listen-img"
+               [src]="isPlayingVideo ? pauseIconDataUrl : playIconDataUrl"
+               [attr.alt]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
+               [attr.aria-label]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
+               [attr.aria-pressed]="isPlayingVideo"
+               role="button"
+               tabindex="0"
+               (click)="toggleVideoPlay()"
+               (keydown.enter)="toggleVideoPlay()"
+               (keydown.space)="toggleVideoPlay(); $event.preventDefault()" />
+
+          <button class="progress-btn"
+                  [class.recording]="isRecording"
+                  [attr.aria-pressed]="isRecording"
+                  (click)="toggleRecording()"
+                  type="button">
+            <svg class="progress-ring" width="85" height="85" viewBox="0 0 90 90" aria-hidden="true">
+              <circle class="progress-ring__background" stroke="#3aaea8" stroke-width="6" fill="transparent" r="38" cx="45" cy="45" />
+              <circle class="progress-ring__bar"
+                      stroke="#3aaea8" stroke-linecap="round" stroke-width="6" fill="transparent"
+                      r="38" cx="45" cy="45"
+                      [attr.stroke-dasharray]="circumference"
+                      [attr.stroke-dashoffset]="strokeDashoffset" />
+            </svg>
+            <div class="label" aria-hidden="true">
+              <span class="action-text" *ngIf="isRecording">🎙️</span>
+              <span class="action-text" *ngIf="!isCountingDown && !isRecording">🎤</span>
+              <span class="seconds" *ngIf="isCountingDown">{{ timeLeft | number:'1.0-0' }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pp-right">
+      <div class="gauge-wrapper">
+        <div class="gauge">
+          <div class="gauge-arc"></div>
+          <div class="needle" [class.oscillate]="isOscillating" [style.--angle]="needleAngle + 'deg'"></div>
+        </div>
+        <div class="mic-badge">
+          <span class="score-span">{{score}}%</span>
+        </div>
+      </div>
+
+      <div class="fb-board">
+        <img src="assets/pronunciation/board.png" alt="Slate">
+        <div class="center-text1">
+          {{ shortfeedback ? shortfeedback : 'Speak to get feedback' }}
+        </div>
+      </div>
+
+      <div class="container">
+        <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
+        <span class="center-text">{{ current.letter }}</span>
+        <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
+      </div>
+    </div>
+  </div>
+</div>
+<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">×</button>

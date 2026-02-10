@@ -1,0 +1,92 @@
+/* Reuse global styles; keep only minor tweaks if needed */
+:host {
+  display: block;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0 2vw;
+  background-color: #009688;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  overflow-x: clip;
+}
+
+  .header-container .logo,
+  .header-container .home-btn,
+  .header-container .toggle-buttons-container {
+    flex: 0 0 auto;
+  }
+
+.header-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+  .header-title h1 {
+    font-size: 3vw;
+    color: #fff;
+    margin: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+.header-container .logo img {
+  max-width: 5vw;
+  height: auto;
+  background: #fff;
+  border-radius: 1vw;
+  margin: 0.5vw;
+}
+
+.home-btn img {
+  width: 5vw;
+  transition: transform 0.2s ease;
+}
+
+  .home-btn img:hover {
+    transform: scale(1.08);
+  }
+
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  text-decoration: none;
+}
+
+.product-name {
+  color: #fff;
+  font-size: 2vw;
+  letter-spacing: 0.5px;
+  font-family: Amonk_Outline;
+  line-height: 1;
+}
+
+.brand-link:hover .product-name {
+  opacity: 0.9;
+}
+
+.header-title h1 {
+  font-family: 'Super Cartoon', cursive;
+}

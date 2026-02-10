@@ -1,0 +1,666 @@
+/* Layout */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.chat-box {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 375px;
+  padding: 2vw;
+  background-color: rgba(35, 34, 32, 0.43);
+  scroll-behavior: smooth;
+  flex-grow: 1;
+  padding-bottom: 375px;
+  scroll-padding-bottom: 375px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* Input */
+.input-box {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  background: #009688;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+  min-height: 40px;
+  font-weight: bold;
+}
+
+  .input-box textarea {
+    flex: 1;
+    height: auto;
+    max-height: 80px;
+    overflow-y: auto;
+    resize: none;
+    padding: 8px;
+    font-size: 1vw;
+    line-height: 1.2;
+    border: 1px solid rgb(93, 145, 195);
+    border-radius: 8px;
+    background: #fff;
+    color: black;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+    .input-box textarea:focus {
+      border-color: rgb(135, 185, 235);
+      box-shadow: 0 0 5px rgba(93, 145, 195, 0.6);
+    }
+
+    .input-box textarea::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+  .input-box button {
+    width: 55px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+    .input-box button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 4px 10px rgba(14, 165, 233, 0.4);
+    }
+
+.button-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+/* Quick suggestions */
+.hardcoded-questions-container {
+  display: flex;
+  justify-content: flex-start;
+  gap: 15px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+  position: absolute;
+  bottom: 60px;
+  left: 10px;
+  width: auto;
+}
+
+.hardcoded-question {
+  padding: 10px 15px;
+  background: rgba(200, 200, 200, 0.3);
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  white-space: nowrap;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+  .hardcoded-question:hover {
+    background: rgba(180, 180, 180, 0.5);
+    transform: scale(1.05);
+  }
+
+@media (max-width: 600px) {
+  .hardcoded-questions-container {
+    width: 90%;
+    bottom: 80px;
+    left: 10px;
+  }
+
+  .hardcoded-question {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
+
+/* Messages */
+.message-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 1vw;
+  margin-bottom: 1vw;
+}
+
+  .message-wrapper.user {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+
+  .message-wrapper.ai {
+    flex-direction: row;
+    text-align: left;
+  }
+
+.profile-pic {
+  width: 4vw;
+  height: 4vw;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #ddd;
+}
+
+  .profile-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+.ai .message {
+  align-self: flex-start;
+  background: #56cdc273;
+  color: white;
+}
+
+.user .message {
+  align-self: flex-end;
+  background: #56cdc273;
+  color: white;
+}
+
+.message-timestamp {
+  font-size: 0.8vw;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 0.5vw;
+  display: inline-block;
+  text-align: right;
+}
+
+.message {
+  max-width: 50vw;
+  padding: 1vw 2vw;
+  border-radius: 2vw;
+  font-size: 1vw;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: 0 0.3vw 0.8vw rgba(0, 0, 0, 0.1);
+  background: #2b6296;
+  color: white;
+}
+
+.structured-response {
+  background: #2b6296;
+  color: white;
+  padding: 1vw;
+  border-radius: 1vw;
+  margin-bottom: 0.3vw;
+  box-shadow: 0 0.3vw 0.8vw rgba(0, 0, 0, 0.1);
+  line-height: 1.4;
+  max-width: 48vw;
+  word-break: break-word;
+}
+
+  .structured-response b {
+    display: inline-block;
+    margin-top: 0.3vw;
+  }
+
+  .structured-response br {
+    display: block;
+    content: "";
+    margin: 0.2vw 0;
+  }
+
+  .structured-response ul, .structured-response ol {
+    padding-left: 1.2vw;
+    margin-bottom: 0;
+  }
+
+    .structured-response ul li, .structured-response ol li {
+      margin-bottom: 0.2vw;
+      line-height: 1.4;
+    }
+
+.message, .structured-response {
+  scroll-margin-bottom: var(--input-gap, 120px);
+}
+
+/* Scroll button */
+.scroll-to-bottom-btn {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--input-gap, 120px) + 16px);
+  width: 51px;
+  height: 51px;
+  border-radius: 50%;
+  border: none;
+  background: #56cdc2;
+  color: #fff;
+  font-size: 31px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  z-index: 20;
+}
+
+  .scroll-to-bottom-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+    background: #56cdc2;
+  }
+
+/* Toggle buttons */
+.toggle-buttons-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-right: 15px;
+}
+
+  .toggle-buttons-container.modern-toggle {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-right: 15px;
+  }
+
+.toggle-btn {
+  padding: 8px 12px;
+  border: 2px solid #5d91c3;
+  background: transparent;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9vw;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 49px;
+  white-space: nowrap;
+}
+
+  .toggle-btn:hover {
+    background: rgba(93, 145, 195, 0.2);
+    transform: scale(1.05);
+  }
+
+  .toggle-btn.active {
+    background: #5d91c3;
+    color: white;
+    box-shadow: 0 0 10px rgba(93, 145, 195, 0.5);
+  }
+
+  .toggle-btn.modern {
+    background: #f5f7fa;
+    border: none;
+    border-radius: 24px;
+    box-shadow: 0 2px 8px rgba(93,145,195,0.08);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+    min-width: 48px;
+    height: 44px;
+  }
+
+    .toggle-btn.modern .toggle-icon {
+      width: 24px;
+      height: 24px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .toggle-btn.modern.active {
+      background: #e3fcec;
+      box-shadow: 0 4px 16px rgba(93,145,195,0.18);
+      transform: scale(1.08);
+    }
+
+    .toggle-btn.modern.muted {
+      background: #ffeaea;
+    }
+
+    .toggle-btn.modern:hover {
+      background: #eaf1fb;
+      box-shadow: 0 6px 18px rgba(93,145,195,0.18);
+      transform: scale(1.05);
+    }
+
+    .toggle-btn.modern:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+@media (max-width: 1200px) {
+  .toggle-btn {
+    font-size: 0.8vw;
+    min-width: 70px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toggle-buttons-container {
+    gap: 5px;
+    margin-right: 10px;
+  }
+
+  .toggle-btn {
+    font-size: 0.7vw;
+    min-width: 60px;
+    padding: 4px 8px;
+  }
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  margin-left: 0.5vw;
+}
+
+  .icon-btn:hover {
+    background: rgba(93, 145, 195, 0.15);
+  }
+
+.meta-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.copy-tick {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  transition: color 0.2s;
+}
+
+/* Tutor video (also used for inline player) */
+.tutor-video {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  width: 380px;
+  height: 380px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 2000;
+  background: #000;
+}
+
+@media (max-width: 600px) {
+  .tutor-video {
+    width: 90vw;
+    height: 28vw;
+    right: 5vw;
+    bottom: 5vw;
+  }
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 1.2vw;
+  margin-left: 4vw;
+  margin-top: 1vw;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.8vw 1.5vw;
+  border-radius: 2vw;
+  width: fit-content;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+  .typing-indicator span {
+    width: 10px;
+    height: 10px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: typingDots 1.5s infinite ease-in-out;
+  }
+
+    .typing-indicator span:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .typing-indicator span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+@keyframes typingDots {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mic popup */
+.mic-popup {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  width: 420px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  z-index: 1200;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.mic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+  .mic-header .close {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+.mic-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.waveform {
+  width: 100%;
+  height: 90px;
+  background: #fafafa;
+  border-radius: 6px;
+  display: block;
+}
+
+.transcript-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #444;
+  font-size: 13px;
+}
+
+  .status .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #bbb;
+    display: inline-block;
+  }
+
+    .status .dot.recording {
+      background: #d23;
+      box-shadow: 0 0 8px rgba(210,35,35,0.35);
+    }
+
+.popup-transcript {
+  min-height: 52px;
+  background: #f7f8fa;
+  padding: 8px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  color: #222;
+}
+
+  .popup-transcript .hint {
+    color: #666;
+    font-size: 13px;
+  }
+
+  .popup-transcript pre {
+    margin: 0;
+    font-family: inherit;
+    white-space: pre-wrap;
+  }
+
+.mic-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+  .mic-actions button {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+  }
+
+    .mic-actions button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+.error {
+  color: #b00020;
+  font-size: 13px;
+}
+
+/* User guide */
+.user-guide-modal {
+  position: fixed;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 38vw;
+  width: 50vw;
+  background: linear-gradient(135deg, #fff 80%, #e3fcec 100%);
+  color: #222;
+  box-shadow: 0 12px 40px rgba(93, 145, 195, .22);
+  border-radius: 18px;
+  padding: 1vw;
+  z-index: 2001;
+  overflow: visible;
+  border: 10px solid var(--main-accent-color);
+  box-sizing: border-box;
+}
+
+.user-guide-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 2000;
+}
+
+.user-guide-close-icon {
+  top: -22px;
+  right: -22px;
+}
+
+.user-guide-modal ol {
+  overflow-y: auto;
+  max-height: 34.6vw;
+}
+
+.user-guide-modal li {
+  line-height: 1.7;
+  font-size: 1.1vw;
+  background: rgba(93, 145, 195, .07);
+  padding: .5vw .5vw;
+  box-shadow: 0 2px 8px rgba(93, 145, 195, .06);
+}
+
+  .user-guide-modal li b {
+    color: #2b6296;
+    font-size: 1.15vw;
+  }
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+
+  51%, 100% {
+    opacity: 0;
+  }
+}

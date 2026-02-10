@@ -1,0 +1,22 @@
+<div class="header-container">
+  <div class="logo">
+    <a routerLink="/home" class="brand-link">
+      <img [src]="logoSrc || brand.logo" [alt]="(productName || brand.name) + ' Logo'" />
+    </a>
+    <span class="product-name">{{ productName || brand.name }}</span>
+  </div>
+
+  <div class="header-title" *ngIf="title">
+    <h1>{{ title }}</h1>
+  </div>
+
+  <div class="toggle-buttons-container modern-toggle">
+    <ng-content select="[header-right]"></ng-content>
+  </div>
+
+  <div class="home-btn" *ngIf="showHome">
+    <a routerLink="/home">
+      <img src="assets/images/home.png" alt="Home" class="home-icon" />
+    </a>
+  </div>
+</div>

@@ -1,0 +1,362 @@
+<div class="chat-container">
+  <app-header [title]="'Grammar Chat'">
+    <div class="toggle-buttons-container modern-toggle" header-right>
+      <button class="toggle-btn modern"
+              [class.active]="isVoiceEnabled"
+              [class.muted]="!isVoiceEnabled"
+              (click)="toggleVoice()"
+              title="Voice On/Off">
+        <img [src]="isVoiceEnabled ? 'assets/images/chat/volume.png' : 'assets/images/chat/volume-mute.png'"
+             alt="Voice Toggle" class="toggle-icon" />
+      </button>
+
+      <button class="toggle-btn modern"
+              [class.active]="isTutorEnabled"
+              (click)="toggleTutor()"
+              title="Tutor On/Off">
+        <img [src]="isTutorEnabled ? 'assets/images/chat/video.png' : 'assets/images/chat/no-video.png'"
+             alt="Tutor" class="toggle-icon" />
+      </button>
+
+      <button class="toggle-btn modern" disabled
+              [class.active]="isSyllabusEnabled"
+              (click)="toggleSyllabus()"
+              title="Syllabus On/Off">
+        <img [src]="isSyllabusEnabled ? 'assets/images/chat/syllabus.png' : 'assets/images/chat/internet.png'"
+             alt="Syllabus" class="toggle-icon" />
+      </button>
+
+      <button class="toggle-btn modern" disabled
+              [class.active]="isBreadcrumbEnabled"
+              (click)="toggleBreadcrumb()"
+              title="Breadcrumb On/Off">
+        <img src="assets/images/chat/breadcrumbs.png" alt="Breadcrumb" class="toggle-icon" />
+      </button>
+
+      <button class="toggle-btn modern" (click)="openUserGuide()" title="Open User Guide">
+        <img src="assets/images/chat/info.png" alt="User Guide" class="toggle-icon" />
+      </button>
+    </div>
+  </app-header>
+
+  <img src="assets/images/grammar-bg.png" alt="Chat Background" class="grammar-bg" />
+
+  <div class="chat-box" #chatContent>
+    <div *ngFor="let message of messages; let i = index">
+      <div *ngIf="message.from === 'user'" class="message-wrapper user">
+        <div class="profile-pic">
+          <img src="assets/images/chat/rabbit.png" alt="User" />
+        </div>
+        <div class="message">
+          {{ message.text }}
+          <div class="message-timestamp">{{ message.timestamp }}</div>
+        </div>
+      </div>
+
+      <div *ngIf="message.from === 'ai'" class="message-wrapper ai">
+        <div class="profile-pic">
+          <img src="assets/images/chat/natasha.png" alt="AI" />
+        </div>
+
+        <div class="message structured-response">
+          <div [innerHTML]="formatStructuredResponse(message.text)"></div>
+
+          <div class="followups" *ngIf="message.suggestions?.length">
+            <div class="followups-title">Follow-up suggestions</div>
+            <button class="followup-chip"
+                    *ngFor="let s of message.suggestions"
+                    (click)="selectHardcodedQuestion(s)"
+                    title="Ask this next">
+              {{ s }}
+            </button>
+          </div>
+
+          <div class="message-timestamp">
+            {{ message.timestamp }}
+
+            <button class="icon-btn" (click)="copyToClipboard(message.text, i)"
+                    [attr.aria-label]="copySuccessIndex === i ? 'Copied' : 'Copy message'"
+                    title="Copy message">
+              <ng-container *ngIf="copySuccessIndex === i; else showCopy">
+                <span class="copy-tick">&#10003;</span>
+              </ng-container>
+              <ng-template #showCopy>
+                <img src="assets/images/chat/copy.png" alt="Copy" class="meta-icon" />
+              </ng-template>
+            </button>
+
+            <button class="icon-btn"
+                    *ngIf="message.audioUrl && isReadingIndex !== i"
+                    (click)="playServerAudioForMessage(i)"
+                    aria-label="Play audio" title="Play audio">
+              <img src="assets/images/chat/speaker.png" alt="Play audio" class="meta-icon" />
+            </button>
+
+            <button class="icon-btn"
+                    *ngIf="message.audioUrl && isReadingIndex === i"
+                    (click)="stopReadAloud()"
+                    aria-label="Stop audio" title="Stop audio">
+              <img src="assets/images/chat/stop-button.png" alt="Stop audio" class="meta-icon" />
+            </button>
+
+            <button class="icon-btn"
+                    *ngIf="!message.audioUrl"
+                    (click)="synthesizeAudioAndPlay(i)"
+                    [disabled]="message.isSynthesizing"
+                    aria-label="Generate audio"
+                    title="Generate audio">
+              <ng-container *ngIf="!message.isSynthesizing; else audioSpinner">
+                <img src="assets/images/chat/speaker.png" alt="Generate audio" class="meta-icon" />
+              </ng-container>
+              <ng-template #audioSpinner>
+                <img src="assets/images/chat/loading-spinner.gif" alt="Generating audio" class="meta-icon" />
+              </ng-template>
+            </button>
+
+            <button class="icon-btn"
+                    *ngIf="!message.videoUrl && !message.isVideoSynthesizing"
+                    (click)="chatId == '2' ? generateTutorVideoFromText(i) : synthesizeVideoAndPlay(i)"
+                    aria-label="Generate video"
+                    title="Generate video">
+              <img src="assets/images/chat/video.png" alt="Generate video" class="meta-icon" />
+            </button>
+
+            <button class="icon-btn" *ngIf="!message.videoUrl && message.isVideoSynthesizing" disabled>
+              <img src="assets/images/chat/loading-spinner.gif" alt="Generating video" class="meta-icon" />
+            </button>
+
+            <button class="icon-btn"
+                    *ngIf="message.videoUrl"
+                    (click)="toggleMessageVideo(i)"
+                    [class.active]="isVideoEnabledIndex[i]"
+                    aria-label="Toggle video"
+                    title="Toggle video">
+              <img [src]="isVideoEnabledIndex[i] ? 'assets/images/chat/no-video.png' : 'assets/images/chat/video.png'"
+                   alt="Video" class="meta-icon" />
+            </button>
+          </div>
+
+
+          <div style=" width: 20vw; height: 20vw; position: absolute; bottom: 5vw; right: 6vw; z-index: 2">
+            <video *ngIf="isVideoEnabledIndex[i] && message.playingVideoUrl"
+                   style="width:100%; height:100%; object-fit:cover;"
+                   [src]="message.playingVideoUrl"
+                   (ended)="onMessageVideoEnded(i)"
+                   autoplay>
+            </video>
+          </div>
+          <!--<video *ngIf="isVideoEnabledIndex[i] && message.playingVideoUrl"
+         id="inline-video-{{i}}"
+         class="tutor-video"
+         [src]="message.playingVideoUrl"
+         (ended)="onMessageVideoEnded(i)">
+  </video>-->
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="isTyping" class="typing-indicator" aria-live="polite">
+      Tutor's Response
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="input-container">
+    <div class="input-box">
+      <textarea [(ngModel)]="userInput"
+                (focus)="showHardcodedQuestions()
+"
+                (blur)="hideHardcodedQuestions()"
+                (input)="adjustTextareaHeight($event)"
+                (keydown)="handleEnterPress($event)"
+                placeholder="Type your message here..."
+                [disabled]="isAiResponding">
+      </textarea>
+
+      <button (click)="handleButtonClick()"
+              [disabled]="isListening && !showMicPopup"
+              aria-label="Send or voice">
+        <img [src]="getButtonIcon()" alt="Action" class="button-icon" />
+      </button>
+    </div>
+
+    <button type="button" aria-label="Scroll to bottom" (click)="scrollToBottom(true)" class="scroll-to-bottom-btn">
+      ↓
+    </button>
+    <div class="hardcoded-questions-container" *ngIf="showQuestions">
+      <div *ngIf="pdfLoading" class="loading-row">Loading…</div>
+      <ng-container *ngIf="!pdfLoading">
+        <ng-container *ngIf="currentFollowups.length; else showPdfQs">
+          <div class="hint-row">Follow-up suggestions</div>
+          <button class="hardcoded-question"
+                  *ngFor="let q of currentFollowups"
+                  (mousedown)="selectHardcodedQuestion(q)"
+                  [disabled]="isAiResponding">
+            {{ q }}
+          </button>
+        </ng-container>
+
+        <ng-template #showPdfQs>
+          <div class="hint-row">Questions from your textbook</div>
+          <ng-container *ngIf="pdfQuestions?.length; else noPdfQs">
+            <button class="hardcoded-question"
+                    *ngFor="let q of pdfQuestions"
+                    (mousedown)="selectHardcodedQuestion(q)"
+                    [disabled]="isAiResponding">
+              {{ q }}
+            </button>
+          </ng-container>
+          <ng-template #noPdfQs>
+            <div class="hardcoded-question disabled">No grammar questions available.</div>
+          </ng-template>
+        </ng-template>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="mic-popup" *ngIf="showMicPopup">
+    <div class="mic-header">
+      <strong>Microphone</strong>
+      <button class="close" (click)="closeMicrophonePopup()">✕</button>
+    </div>
+
+    <div class="mic-body">
+      <canvas #waveformCanvas class="waveform" aria-hidden="true"></canvas>
+
+      <div class="transcript-area">
+        <div class="status">
+          <span class="dot" [class.recording]="isRecording"></span>
+          <span>{{ isRecording ? 'Recording…' : 'Ready' }}</span>
+        </div>
+
+        <div class="popup-transcript">
+          <div class="hint" *ngIf="popupTranscript === 'Processing…'">Processing… please wait</div>
+          <pre *ngIf="popupTranscript && popupTranscript !== 'Processing…'">{{ popupTranscript }}</pre>
+          <div class="empty" *ngIf="!popupTranscript">Speak and click Done when finished</div>
+        </div>
+
+        <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+      </div>
+
+      <div class="mic-actions">
+        <button (click)="stopRecording()" [disabled]="!isRecording">Done</button>
+        <button (click)="confirmAndSendTranscript()" [disabled]="!popupTranscript || popupTranscript === 'Processing…'">Send</button>
+        <button (click)="closeMicrophonePopup()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="user-guide-overlay" *ngIf="showUserGuide" (click)="closeUserGuide()">
+    <div class="user-guide-modal" (click)="$event.stopPropagation()">
+      <button class="user-guide-close-icon" (click)="closeUserGuide()" aria-label="Close">&times;</button>
+      <div class="user-guide-content">
+        <ol style="text-align: justify; font-size:15px;">
+          <li>
+            <b>Introduction</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>The Chat Module is an interactive learning environment designed to assist learners through text and voice-based communication.</li>
+              <li>Users can type their question or select from follow-up suggestions, using either the text input or the microphone.</li>
+              <li>Predefined questions appear above the input field for quick access.</li>
+              <li>This creates an engaging and personalised learning experience similar to interacting with a real tutor.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Starting the Chat</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>When learners open the module, they will see a text input box and a microphone icon. They can type a question or activate the microphone to speak.</li>
+              <li>While the microphone is active, a listening popup appears with options to mute or stop recording. Once the learner finishes speaking or typing, their question is displayed in the chat area along with a timestamp.</li>
+              <li>This simple interface ensures that both typing and speaking interactions are smooth and user-friendly.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Accessing the Syllabus</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>Before learners begin, an administrator uploads the syllabus or textbook in digital format.</li>
+              <li>The system analyses the document and automatically generates a list of predefined questions based on the uploaded syllabus.</li>
+              <li>These predefined questions are displayed above the input field, allowing learners to choose any topic without needing to type.</li>
+              <li>When a learner selects a question, the system locates the relevant section from the syllabus and prepares an answer. The response appears instantly in the chat area in a clear and readable format.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Receiving the Response</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>
+                After a question is sent, the system generates an immediate response that includes:
+                <ul>
+                  <li>A text-based explanation</li>
+                  <li>An audio narration in the tutor’s real voice</li>
+                  <li>A derived video explanation, when applicable</li>
+                </ul>
+              </li>
+              <li>The response is first produced as text. If the learner chooses to listen, the system plays an audio narration that has been synthetically generated using the real voice of the teacher.</li>
+              <li>The voice is not a generic computer voice; it has been trained and modelled on the actual tutor’s speech patterns, ensuring that the tone, pronunciation, and expression closely resemble the teacher’s natural way of speaking.</li>
+              <li>Similarly, when a video explanation is requested, the system displays a derived video of the teacher. This video is not a pre-recorded clip or animation, but is generated to resemble the real teacher’s voice and reactions.</li>
+              <li>All audio and video responses are created dynamically for each question, providing unique, real-time explanations. Learners can replay or stop the narration at any time, copy text responses, and follow the conversation naturally with the speaking indicator showing when the tutor’s voice is active.</li>
+              <li>By default, audio is muted; you can enable it as needed.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Handling Out-of-Syllabus Questions</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>If a learner asks a question that is not part of the uploaded syllabus or textbook, the system responds with the message: “This topic is out of syllabus.”</li>
+              <li>Only administrators can configure whether such questions can be answered using external information sources.</li>
+              <li>This ensures that all discussions remain within the approved syllabus unless authorised otherwise.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Follow-Up and Progressive Learning</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>After each response, the system displays related or next-level questions below the chat. This feature helps learners progress through topics in a logical sequence.</li>
+              <li>A breadcrumb trail is also displayed, showing the topic flow and subtopics covered during the conversation.</li>
+              <li>Learners can easily revisit previous points and continue from where they left off.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Audio, Video, and Mode Controls</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>
+                At the top of the chat interface, four control buttons provide flexibility and accessibility:
+                <ul>
+                  <li>Audio Control – Enable or disable narration.</li>
+                  <li>Video Control – Show or hide derived video explanations.</li>
+                  <li>Syllabus Mode Control – Keep learning limited to syllabus topics.</li>
+                  <li>Breadcrumb Control – Display or hide the topic trail.</li>
+                </ul>
+              </li>
+              <li>Only administrators can modify the syllabus mode to include out-of-syllabus responses.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Interface and Usability</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>The chat interface presents a clear, conversational layout between the learner and the tutor. Each message includes a profile icon and timestamp for a natural reading flow.</li>
+              <li>Typing indicators appear while the system prepares responses, and a scroll button allows quick access to the most recent messages.</li>
+              <li>The design is responsive and adapts to different devices such as desktops, tablets, etc.</li>
+            </ul>
+          </li>
+          <li>
+            <b>Summary</b><br>
+            <ul style="list-style: unset; margin-left:1.25rem;">
+              <li>The Chat Module provides an engaging, syllabus-focused learning experience where learners can type or speak their questions and receive immediate answers through text, real teacher voice, and derived video.</li>
+              <li>With predefined questions, real-time explanations, structured progression, and easy-to-use controls, this module offers a complete and intelligent conversational learning environment—all within a single platform.</li>
+              <li>Use this feature for summary-guided training.</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div style=" width: 20vw; height: 20vw; position: absolute; bottom: 5vw; right: 6vw;">
+    <video style="width:100%; height:100%; object-fit:cover;"
+           src="assets/pronunciation/listening.mp4" autoplay loop muted>
+    </video>
+  </div>
+ 
+  <video *ngIf="isTutorEnabled && videoUrl"
+         class="tutor-video"
+         [src]="videoUrl"
+         (ended)="clearVideoUrl()"
+         (error)="clearVideoUrl()"
+         controls autoplay>
+  </video>
+</div>

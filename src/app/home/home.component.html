@@ -1,0 +1,424 @@
+<!-- ================= NAVIGATION BAR ================= -->
+<div class="hero">
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="logo">
+        <img [src]="brand.logo" [alt]="brand.name + ' Logo'" (click)="reloadPage()" />
+      </div>
+      <ul class="nav-links">
+        <li class="main-menu-dropdown">
+          <a class="nav-link" href="#" (click)="$event.preventDefault()" aria-haspopup="true" aria-expanded="false">
+            Chat
+            <i class="fas fa-caret-down"></i>
+          </a>
+          <ul class="submenu">
+            <li>
+              <a routerLink="/chat/1" role="button" aria-pressed="false">
+                Chat D-ID
+              </a>
+            </li>
+            <li>
+              <a routerLink="/chat/2" role="button" aria-pressed="false">
+                Chat KD Talker
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!--<li><a routerLink="/chat" routerLinkActive="active-link">Chat</a></li>-->
+        <li><a class="nav-link--disabled" routerLink="/generate-questions" routerLinkActive="active-link">Grammar</a></li>
+        <li><a class="nav-link--disabled" routerLink="/voice" routerLinkActive="active-link">Voice</a></li>
+        <li><a class="nav-link--disabled" routerLink="/listen" routerLinkActive="active-link">Listening</a></li>
+        <li><a class="nav-link--disabled" routerLink="/reading" routerLinkActive="active-link">Reading</a></li>
+        <li><a class="nav-link--disabled" routerLink="/writing" routerLinkActive="active-link">Writing</a></li>
+        <li><a class="nav-link--disabled" routerLink="/vocabulary-builder" routerLinkActive="active-link">Vocabulary-Builder</a></li>
+        <li><a class="nav-link--disabled" routerLink="/findword" routerLinkActive="active-link">Find Word</a></li>
+        <li class="main-menu-dropdown">
+          <a class="nav-link" href="#" (click)="$event.preventDefault()" aria-haspopup="true" aria-expanded="false">
+            General
+            <i class="fas fa-caret-down"></i>
+          </a>
+          <ul class="submenu">
+            <li>
+              <a href="#" (click)="openPronunciation(); $event.preventDefault()" role="button" aria-pressed="false">
+                Pronunciation Trainer
+              </a>
+            </li>
+            <li><a class="nav-link--disabled" routerLink="/personality-improvement" routerLinkActive="active-link">Personality Improvement</a></li>
+            <li><a class="nav-link--disabled" routerLink="/body-language-improvement" routerLinkActive="active-link">Body Language Improvement</a></li>
+          </ul>
+        </li>
+      </ul>
+      <!-- ================= ACCOUNT/LOGIN MENU ================= -->
+      <div class="nav-actions">
+        <ng-container *ngIf="isAuthenticated && username; else loginIcon">
+          <div class="avatar" (click)="toggleAccountMenu()" [attr.title]="usernameInitial">
+            {{ usernameInitial }}
+          </div>
+          <div class="account-menu" *ngIf="showAccountMenu" (mouseleave)="closeAccountMenu()">
+            <div class="account-header">
+              <div class="avatar avatar-lg">{{ usernameInitial }}</div>
+              <div class="account-meta">
+                <div class="account-name">{{ displayName }}</div>
+                <div class="account-email">{{ displayEmail }}</div>
+              </div>
+            </div>
+            <div class="account-item" (click)="goToAccount()">My account</div>
+            <hr />
+            <div class="account-item" (click)="logout()">Logout</div>
+          </div>
+        </ng-container>
+        <ng-template #loginIcon>
+          <a routerLink="/login" class="login-button" [attr.title]="'Login'" aria-label="Login">
+            <i class="fas fa-user"></i>
+          </a>
+        </ng-template>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ================= HERO SECTION ================= -->
+  <div class="hero-text">
+    <h1>{{ brand.name }}</h1>
+    <h2>A Self-Learning System</h2>
+    <p>
+      It is a personalized self-learning system helps students to improve their language skills through interactive<br />and customized exercises.
+      With engaging activities and instant feedback,<br />learning becomes easy and enjoyable!
+    </p>
+  </div>
+
+  <!-- ================= CARDS SECTION ================= -->
+  <section class="cards-section">
+    <h2 class="section-title">
+      What would you like to <span class="highlight">learn</span> today?
+    </h2>
+    <div class="cards-container">
+      <div class="card" 
+           *ngFor="let card of cards; let i = index" 
+           [class.card--disabled]="card.disabled"
+           (click)="handleCardAction(card)" 
+           role="button" 
+           [tabindex]="card.disabled ? -1 : 0" 
+           (keydown.enter)="handleCardAction(card)" 
+           (keydown.space)="handleCardAction(card)">
+        <div class="card-image">
+          <img [src]="card.image" [alt]="card.title" />
+        </div>
+        <div class="card-content">
+          <div class="card-buttons">
+            <button class="know-more-btn" 
+                    (click)="$event.stopPropagation(); openGuidePopup(card.title)"
+                    [disabled]="card.disabled">Know More</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GUIDE POPUP ================= -->
+  <div *ngIf="showGuidePopup">
+    <div class="user-guide-overlay" (click)="closeGuidePopup()"></div>
+    <div class="user-guide-modal" role="dialog" aria-modal="true">
+      <button class="user-guide-close-icon" (click)="closeGuidePopup()" aria-label="Close">&times;</button>
+      <ng-container [ngSwitch]="selectedCardTitle">
+        <!-- Card-specific guide content (all used) -->
+        <ng-container *ngSwitchCase="'Grammar Chat'">
+          <ul style="text-align: justify; font-size: 15px;">
+            <li>
+              <b>Introduction</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The Chat Module is an interactive learning environment designed to assist learners through text and voice-based communication.</li>
+                <li>Users can type their question or select from follow-up suggestions, using either the text input or the microphone.</li>
+                <li>Predefined questions appear above the input field for quick access.</li>
+                <li>This creates an engaging and personalised learning experience similar to interacting with a real tutor.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Starting the Chat</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>When learners open the module, they will see a text input box and a microphone icon. They can type a question or activate the microphone to speak.</li>
+                <li>While the microphone is active, a listening popup appears with options to mute or stop recording. Once the learner finishes speaking or typing, their question is displayed in the chat area along with a timestamp.</li>
+                <li>This simple interface ensures that both typing and speaking interactions are smooth and user-friendly.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Accessing the Syllabus</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Before learners begin, an administrator uploads the syllabus or textbook in digital format.</li>
+                <li>The system analyses the document and automatically generates a list of predefined questions based on the uploaded syllabus.</li>
+                <li>These predefined questions are displayed above the input field, allowing learners to choose any topic without needing to type.</li>
+                <li>When a learner selects a question, the system locates the relevant section from the syllabus and prepares an answer. The response appears instantly in the chat area in a clear and readable format.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Receiving the Response</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>
+                  After a question is sent, the system generates an immediate response that includes:
+                  <ul>
+                    <li>A text-based explanation</li>
+                    <li>An audio narration in the tutor's real voice</li>
+                    <li>A derived video explanation, when applicable</li>
+                  </ul>
+                </li>
+                <li>The response is first produced as text. If the learner chooses to listen, the system plays an audio narration that has been synthetically generated using the real voice of the teacher.</li>
+                <li>The voice is not a generic computer voice; it has been trained and modelled on the actual tutor's speech patterns, ensuring that the tone, pronunciation, and expression closely resemble the teacher's natural way of speaking.</li>
+                <li>Similarly, when a video explanation is requested, the system displays a derived video of the teacher. This video is not a pre-recorded clip or animation, but is generated to resemble the real teacher's voice and reactions.</li>
+                <li>All audio and video responses are created dynamically for each question, providing unique, real-time explanations. Learners can replay or stop the narration at any time, copy text responses, and follow the conversation naturally with the speaking indicator showing when the tutor's voice is active.</li>
+                <li>By default, audio is muted; you can enable it as needed.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Handling Out-of-Syllabus Questions</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>If a learner asks a question that is not part of the uploaded syllabus or textbook, the system responds with the message: "This topic is out of syllabus."</li>
+                <li>Only administrators can configure whether such questions can be answered using external information sources.</li>
+                <li>This ensures that all discussions remain within the approved syllabus unless authorised otherwise.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Follow-Up and Progressive Learning</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>After each response, the system displays related or next-level questions below the chat. This feature helps learners progress through topics in a logical sequence.</li>
+                <li>A breadcrumb trail is also displayed, showing the topic flow and subtopics covered during the conversation.</li>
+                <li>Learners can easily revisit previous points and continue from where they left off.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Audio, Video, and Mode Controls</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>
+                  At the top of the chat interface, four control buttons provide flexibility and accessibility:
+                  <ul>
+                    <li>Audio Control – Enable or disable narration.</li>
+                    <li>Video Control – Show or hide derived video explanations.</li>
+                    <li>Syllabus Mode Control – Keep learning limited to syllabus topics.</li>
+                    <li>Breadcrumb Control – Display or hide the topic trail.</li>
+                  </ul>
+                </li>
+                <li>Only administrators can modify the syllabus mode to include out-of-syllabus responses.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Interface and Usability</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The chat interface presents a clear, conversational layout between the learner and the tutor. Each message includes a profile icon and timestamp for a natural reading flow.</li>
+                <li>Typing indicators appear while the system prepares responses, and a scroll button allows quick access to the most recent messages.</li>
+                <li>The design is responsive and adapts to different devices such as desktops, tablets, etc.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Summary</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The Chat Module provides an engaging, syllabus-focused learning experience where learners can type or speak their questions and receive immediate answers through text, real teacher voice, and derived video.</li>
+                <li>With predefined questions, real-time explanations, structured progression, and easy-to-use controls, this module offers a complete and intelligent conversational learning environment—all within a single platform.</li>
+                <li>Use this feature for summary-guided training.</li>
+              </ul>
+            </li>
+          </ul>
+        </ng-container>
+
+        <!-- Grammar Quiz specific content -->
+        <ng-container *ngSwitchCase="'Grammar Quiz'">
+          <ul style="text-align: justify; font-size: 15px;">
+            <li>
+              <b>Introduction</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The <b>Generate Questions</b> module helps children practise English grammar with step-by-step questions, instant feedback, and level-based progression.</li>
+                <li>All questions, hints, and follow-ups are drawn from a <b>predefined syllabus</b> prepared by your school or administrator.</li>
+                <li>The layout is simple and child-friendly, with clear buttons and readable text.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Syllabus Source</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The module uses a <b>predefined syllabus</b> that includes topics, chapters, sections, and pages.</li>
+                <li>Predefined content ensures that practice stays aligned with the lessons taught in class.</li>
+                <li>If a topic is not found in the syllabus, the system displays a clear message (see “Out-of-Syllabus Control”).</li>
+              </ul>
+            </li>
+            <li>
+              <b>Choose a Topic</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Type a grammar topic (e.g., <i>verbs</i>, <i>nouns</i>, <i>tenses</i>, <i>subject–verb agreement</i>) or select from the suggestion list.</li>
+                <li>Use specific terms (e.g., <i>simple past tense</i>) for better results.</li>
+                <li>If the topic is unclear or unrelated to grammar, the system may show: “Please enter a valid <b>grammar topic</b>, not a general word or unrelated question.”</li>
+              </ul>
+            </li>
+            <li>
+              <b>Generate Questions</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Click <b>Generate</b> to create a set of questions based on the chosen topic from the predefined syllabus.</li>
+                <li>A brief loading screen appears while the questions are prepared.</li>
+                <li>To keep the practice consistent, the topic may be locked after generation until you reset the session.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Answer the Questions</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Each <b>question</b> presents a sentence with a <b>blank</b>. The learner may type any suitable <b>answer</b> in the blank.</li>
+                <li>All blanks must be filled before you can check answers. The <b>Validate/Check Answers</b> button enables automatically.</li>
+                <li>The input fields are designed for easy typing and clear visibility.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Check Your Answers</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Click <b>Check Answers</b> to validate all responses together.</li>
+                <li><b>Color guidance:</b> correct answers are shown in green with the label <b>Correct</b>; incorrect answers are shown in red with the label <b>Wrong</b>.</li>
+                <li>During validation or timed messages, inputs may be temporarily read-only to prevent accidental edits.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Try Again (First Wrong Attempt)</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>For each incorrect <b>answer</b>, a <b>“Try Again”</b> message appears with a short countdown.</li>
+                <li>After the countdown, the wrong entry is cleared so the learner can attempt again.</li>
+                <li>This encourages self-correction with gentle guidance.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Show Correct Answer (Second Wrong Attempt)</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>If a <b>question</b> remains incorrect after the second attempt, another countdown appears.</li>
+                <li>When the countdown ends, the <b>correct answer</b> is shown and filled automatically.</li>
+                <li>This provides closure and allows the learner to continue smoothly.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Hints and Teacher Coaching</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Click the <b>Hint</b> icon to open helpful hints based on the same syllabus section as the questions.</li>
+                <li>When a hint is displayed or when an answer is incorrect, the module can also present the teacher’s voice and a short teacher video that explains the idea in simple words.</li>
+                <li>Audio is muted by default; you may enable it. You can play, pause, or close the video at any time.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Breadcrumb and Follow-Up Questions</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The <b>breadcrumb</b> shows the learning path (Topic ? Chapter ? Section ? Page). Clicking a level focuses the practice on that part.</li>
+                <li><b>Predefined follow-up questions</b> appear below the main set. They come from the same syllabus section and guide the next step (e.g., identification, transformation, short explanation).</li>
+                <li>As answers are submitted, the follow-ups adjust to reinforce areas that need more practice.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Out-of-Syllabus Control</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>If a learner asks about a topic that is not part of the predefined syllabus, the system shows: “This topic is out of syllabus.”</li>
+                <li>Only administrators can decide whether such questions may be answered using other sources.</li>
+                <li>This keeps practice within approved lessons unless specific permission is given.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Level Progress and Progress Bar</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The module uses three levels: <b>Basic ? Intermediate ? Expert</b>.</li>
+                <li>A <b>progress bar</b> with level markers shows the current level and the remaining path.</li>
+                <li>Clear labels and gentle animations help children track progress.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Moving to the Next Level</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>When all <b>questions</b> in a level are correct, a message and a short countdown appear.</li>
+                <li>The module then advances to the next level and updates the progress bar.</li>
+                <li>Difficulty increases gradually to build mastery step by step.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Celebrate Success</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>After completing all three levels, a <b>celebration</b> screen appears.</li>
+                <li>Learners can click <b>Start Over</b> to practise the same topic again or choose a new topic.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Reset or Change Topic</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Use <b>Reset</b> to clear the current session and unlock the topic field.</li>
+                <li>Enter a new topic or select another suggestion to begin a new practice set.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Accessibility and Layout</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Countdowns and status messages are written clearly so learners understand what is happening.</li>
+                <li>The layout adapts to different screens. Buttons and inputs are sized for comfortable tapping and clicking.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Troubleshooting</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li><b>Invalid topic message:</b> Enter a clear grammar term (e.g., <i>articles</i>, <i>comparatives</i>, <i>passive voice</i>).</li>
+                <li><b>Out of syllabus:</b> Choose a topic that appears in the syllabus list or ask an administrator about permission for extra topics.</li>
+                <li><b>Buttons disabled:</b> The <i>Generate</i> button appears after entering a valid topic; the <i>Validate</i> button appears after all blanks are filled.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Benefits for Children</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li><b>Guided practice</b> with clear feedback builds confidence and accuracy.</li>
+                <li><b>Level-based progression</b> supports steady growth from basic understanding to higher skills.</li>
+                <li><b>Hints and teacher coaching</b> help learners correct mistakes and understand rules in simple language.</li>
+                <li><b>Predefined syllabus alignment</b> keeps practice consistent with classroom lessons.</li>
+              </ul>
+            </li>
+          </ul>
+        </ng-container>
+
+        <!-- Voice specific content -->
+        <ng-container *ngSwitchCase="'Voice'">
+          <ul style="text-align: justify; font-size: 15px;">
+            <li>
+              <b>Feature Currently Disabled</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The Voice feature is currently under development and will be available soon.</li>
+                <li>Please check back later or contact support for more information.</li>
+              </ul>
+            </li>
+          </ul>
+        </ng-container>
+
+        <!-- Find Word specific content -->
+        <ng-container *ngSwitchCase="'Find Word'">
+          <ul style="text-align: justify; font-size: 15px;">
+            <li>
+              <b>Feature Currently Disabled</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>The Find Word feature is currently under development and will be available soon.</li>
+                <li>Please check back later or contact support for more information.</li>
+              </ul>
+            </li>
+          </ul>
+        </ng-container>
+
+        <!-- Keep existing content for other cases like Grammar Quiz, Listening, Reading, Writing, Vocabulary Builder -->
+        <!-- Grammar Quiz specific content -->
+        <ng-container *ngSwitchCase="'Grammar Quiz'">
+          <!-- Keep existing content -->
+        </ng-container>
+
+        <!-- Listening specific content -->
+        <ng-container *ngSwitchCase="'Listening'">
+          <!-- Keep existing content -->
+        </ng-container>
+
+        <!-- Reading specific content -->
+        <ng-container *ngSwitchCase="'Reading'">
+          <!-- Keep existing content -->
+        </ng-container>
+
+        <!-- Writing specific content -->
+        <ng-container *ngSwitchCase="'Writing'">
+          <!-- Keep existing content -->
+        </ng-container>
+
+        <!-- Vocabulary Builder specific content -->
+        <ng-container *ngSwitchCase="'Vocabulary Builder'">
+          <!-- Keep existing content -->
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

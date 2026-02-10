@@ -1,0 +1,386 @@
+<footer *ngIf="brandService.showFooter">
+  <ng-container [ngSwitch]="brandService.name">
+    <ng-container *ngSwitchCase="'Py-Learn'">
+      
+          <p>© 2025 Pykara Technologies Pvt. Ltd. All rights reserved.</p>
+          <a href="https://pykara.ai/contact-us/" target="blank">Contact Us</a> |
+          <a href="#" (click)="openPrivacyPopup($event)">Privacy Policy</a> |
+          <a href="#" (click)="openTermsPopup($event)">Terms & Conditions</a>
+          <div class="social-icons">
+            <a [href]="brandService.socialLinksCurrent.linkedin" target="_blank" class="social-icon linkedin" aria-label="LinkedIn">
+              <i class="fab fa-linkedin-in"></i>
+            </a>
+            <a [href]="brandService.socialLinksCurrent.youtube" target="_blank" class="social-icon youtube" aria-label="YouTube">
+              <i class="fab fa-youtube"></i>
+            </a>
+            <a [href]="brandService.socialLinksCurrent.facebook" target="_blank" class="social-icon facebook" aria-label="Facebook">
+              <i class="fab fa-facebook-f"></i>
+            </a>
+            <a [href]="brandService.socialLinksCurrent.instagram" target="_blank" class="social-icon instagram" aria-label="Instagram">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a [href]="brandService.socialLinksCurrent.website" target="_blank" class="social-icon website" aria-label="Website">
+              <i class="fas fa-globe"></i>
+            </a>
+          </div>
+       
+        <!-- Privacy Policy Popup -->
+        <div *ngIf="showPrivacyPopup">
+          <div class="user-guide-overlay" (click)="closePrivacyPopup()"></div>
+          <div class="user-guide-modal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+            <button class="user-guide-close-icon" (click)="closePrivacyPopup()" aria-label="Close">×</button>
+            <ul style="text-align: justify; font-size: 15px;">
+              <!-- Privacy Policy content (all used) -->
+              <li id="privacyTitle">
+                <b>Privacy Policy — Py-learn</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li><b>Last Updated:</b> November 2025</li>
+                  <li><b>Who we are:</b> Py-learn is operated by <b>Pykara Technologies Private Limited</b> (“we”, “us”, “our”), the data controller for personal data processed through the platform.</li>
+                  <li><b>Contact:</b> <a href="mailto:info@pykara.ai">info&#64;pykara.ai</a></li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Overview</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We collect limited personal data to deliver an AI-powered e-learning experience (chatbots, video lessons, quizzes) and to improve learning outcomes.</li>
+                  <li>We comply with applicable laws, including GDPR where relevant to users in the EEA/UK.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Information We Collect</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li><b>Account Data:</b> name, email, password (hashed), profile details.</li>
+                  <li><b>Learning Data:</b> enrolled courses, lessons viewed, quiz results, progress analytics, feedback.</li>
+                  <li><b>Technical Data:</b> device/browser info, IP address, timestamps, logs, approximate location from IP.</li>
+                  <li><b>Cookies & Similar Tech:</b> preferences, session management, analytics (see “Cookies”).</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Purposes of Processing</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Provide and secure the service; authenticate users; maintain accounts.</li>
+                  <li>Personalise content, recommendations, and difficulty levels.</li>
+                  <li>Measure performance, improve features, and fix issues.</li>
+                  <li>Send essential service communications (policy changes, security notices).</li>
+                  <li>Comply with legal obligations and enforce Terms.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Legal Bases (GDPR)</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li><b>Contract necessity:</b> to deliver core features you request.</li>
+                  <li><b>Legitimate interests:</b> service improvement, security, fraud prevention (balanced against your rights).</li>
+                  <li><b>Consent:</b> non-essential cookies, optional marketing (you can withdraw at any time).</li>
+                  <li><b>Legal obligation:</b> records, compliance, and requests from authorities where required by law.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Automated Processing & AI</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>AI is used to generate explanations, hints, and recommendations. We do not make decisions with legal or similarly significant effects solely by automated means.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Third-Party Processors & Transfers</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We use reputable vendors for AI inference, hosting, analytics, email delivery, and content streaming. They act under contracts and process data only on our instructions.</li>
+                  <li>Where data is transferred outside your country (including outside the EEA/UK), appropriate safeguards are applied (e.g., Standard Contractual Clauses).</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Data Sharing</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>With service providers under confidentiality and security obligations.</li>
+                  <li>For legal reasons (court orders, to protect users and our rights, prevent fraud or abuse).</li>
+                  <li>Business changes (merger, acquisition); we will ensure comparable protections or notify you of material changes.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Data Security & Retention</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We apply technical and organisational measures (encryption at rest/in transit, access controls, monitoring).</li>
+                  <li>We retain personal data only as long as needed for the purposes above or as required by law. <b>Inactive accounts may be deleted after 24 months.</b></li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Cookies & Similar Technologies</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li><b>Essential:</b> login/session, security, load balancing.</li>
+                  <li><b>Preferences:</b> UI settings, language, playback choices.</li>
+                  <li><b>Analytics:</b> usage statistics to improve features.</li>
+                  <li>You may control cookies via your browser. Disabling some cookies may affect functionality.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Children’s Privacy</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>The service is intended for users aged 13+. If we learn that data from a child under 13 was collected without appropriate consent, we will delete it.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Your Rights (EEA/UK where applicable)</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Access, rectify, erase, restrict processing, object, and data portability.</li>
+                  <li>Withdraw consent (for consent-based processing) without affecting prior lawful processing.</li>
+                  <li>Lodge a complaint with a supervisory authority. We encourage contacting us first at <a href="mailto:info@pykara.ai">info&#64;pykara.ai</a>.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Data Breach Notification</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We will notify affected users and relevant authorities when legally required.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Changes to this Policy</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We may update this policy. The “Last Updated” date reflects the latest version; material changes may be additionally notified in-app or by email.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Contact</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Email: <a href="mailto:info@pykara.ai">info&#64;pykara.ai</a></li>
+                  <li>Registered Office: Pykara Technologies Private Limited, Chennai, Tamil Nadu, India</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <!-- Terms & Conditions Popup -->
+        <div *ngIf="showTermsPopup">
+          <div class="user-guide-overlay" (click)="closeTermsPopup()"></div>
+          <div class="user-guide-modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+            <button class="user-guide-close-icon" (click)="closeTermsPopup()" aria-label="Close">×</button>
+            <ul style="text-align: justify; font-size: 15px;">
+              <!-- Terms & Conditions content (all used) -->
+              <li id="termsTitle">
+                <b>Terms & Conditions — Py-learn</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li><b>Last Updated:</b> November 2025</li>
+                  <li>By using Py-learn, you agree to these Terms and our Privacy Policy.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Eligibility & Accounts</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>You must be 13+ (or the age of digital consent in your region). Users under 18 require parental/guardian consent.</li>
+                  <li>You are responsible for the accuracy of your information and for safeguarding your credentials.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Permitted Use & Prohibited Conduct</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Use the service for lawful, educational purposes only.</li>
+                  <li>Do not attempt unauthorised access, disrupt the service, reverse engineer components, or misuse AI features.</li>
+                  <li>International users must comply with local laws.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Content & Intellectual Property</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>All software, UI, designs, text, graphics, videos, and datasets are owned by Pykara Technologies or its licensors.</li>
+                  <li>Copying, redistribution, or commercial use requires prior written consent.</li>
+                  <li>When you submit content (e.g., answers, uploads), you grant us a non-exclusive, royalty-free licence to host and process it to operate and improve the service (including for AI model quality and safety, where allowed by law and your settings).</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>AI Outputs & Educational Disclaimer</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>AI responses support learning but may contain errors. Verify outputs before relying on them; they are not professional advice.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Fees, Trials & Refunds</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Some features may be paid (subscriptions or one-off fees). Prices and taxes are shown at checkout.</li>
+                  <li>Payments are processed securely by third-party providers. Unless required by law, payments are non-refundable.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Third-Party Links & Services</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We may link to third-party content or integrate with providers (hosting, analytics, AI). We are not responsible for third-party terms or policies.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Termination & Suspension</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We may suspend or terminate access for violations, fraud, or security risks. You may request account closure at any time.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Warranties & Liability</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>The service is provided “as is” and “as available” without warranties of any kind.</li>
+                  <li>To the fullest extent permitted by law, we are not liable for indirect, incidental, special, consequential, or punitive damages.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Indemnity</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>You agree to indemnify and hold us harmless from claims arising from your misuse of the service or breach of these Terms.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Changes to the Service or Terms</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>We may modify features or these Terms. Continued use after changes indicates acceptance; material updates may be additionally notified in-app or by email.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Governing Law & Disputes</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Governing law: India. Exclusive jurisdiction: courts in Chennai, Tamil Nadu, India.</li>
+                </ul>
+              </li>
+
+              <li>
+                <b>Contact</b><br>
+                <ul style="list-style: unset; margin-left: 1.25rem;">
+                  <li>Support & legal queries: <a href="mailto:info@pykara.ai">info&#64;pykara.ai</a></li>
+                  <li>Registered Office: Pykara Technologies Private Limited, Chennai, Tamil Nadu, India</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+     
+      <div class="footer-watermark-row">
+        <a class="footer-watermark" href="https://www.pykara.ai" target="_blank">www.pykara.ai</a>
+      </div>
+    </ng-container>
+    <!-- MJ-Learn Footer -->
+    <ng-container *ngSwitchCase="'MJ-Learn'">
+      <p>© 2025 Majemaförlaget. All rights reserved.</p>
+      <a href="https://www.majema.se/pages/kontakta-kundtjanst" target="_blank">Contact Us</a> |
+      <a href="#" (click)="openPrivacyPopup($event)">Privacy Policy</a> |
+      <a href="#" (click)="openTermsPopup($event)">Terms & Conditions</a>
+      <div class="social-icons">
+        <a [href]="brandService.socialLinksCurrent.linkedin" target="_blank" class="social-icon linkedin" aria-label="LinkedIn">
+          <i class="fab fa-linkedin-in"></i>
+        </a>
+        <a [href]="brandService.socialLinksCurrent.youtube" target="_blank" class="social-icon youtube" aria-label="YouTube">
+          <i class="fab fa-youtube"></i>
+        </a>
+        <a [href]="brandService.socialLinksCurrent.facebook" target="_blank" class="social-icon facebook" aria-label="Facebook">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+        <a [href]="brandService.socialLinksCurrent.instagram" target="_blank" class="social-icon instagram" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a [href]="brandService.socialLinksCurrent.website" target="_blank" class="social-icon website" aria-label="Website">
+          <i class="fas fa-globe"></i>
+        </a>
+      </div>
+      <!-- Privacy Policy Popup -->
+      <div *ngIf="showPrivacyPopup">
+        <div class="user-guide-overlay" (click)="closePrivacyPopup()"></div>
+        <div class="user-guide-modal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+          <button class="user-guide-close-icon" (click)="closePrivacyPopup()" aria-label="Close">×</button>
+          <ul style="text-align: justify; font-size: 15px;">
+            <li id="privacyTitle">
+              <b>Privacy Policy — Majema</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li><b>What personal data is collected?</b><br>Majemaförlaget AB processes personal data that you provide to us. Personal data that will be processed includes, for example, name, social security number, school affiliation, role, interests related to teaching, address, e-mail address and telephone number. You provide the personal data yourself in connection with ordering, expressions of interest, by telephone or when visiting teaching material exhibitions, school visits and teacher meetings. On our website we use cookies and save your IP address.</li>
+                <li>It is voluntary to provide your personal data, but in some cases we cannot provide you with the service and/or product you have ordered if you do not provide your personal data.</li>
+                <li>We do not collect any personal information from third-party companies. Advertising may occur on external websites and then we can obtain statistics that are not personal through cookies.</li>
+                <li><b>Purposes of personal data processing</b><br>Your personal data will be processed in order for us to fulfill our commitments to you. We may also process your data for the purposes below as well as for our market and customer analyses and statistics in order to provide you with a better offer and better service. We may, unless you have objected to direct marketing in writing, also use your personal data to provide various offers of services and/or products from us. You may unsubscribe from receiving such offers at any time with each marketing message. If we process data for other purposes, we will inform you of this.</li>
+                <li><b>Storage of personal data</b><br>We may transfer your data to IT service providers and other service providers who then process the data on our behalf. If we transfer your data outside the EU, we ensure that we have a legal basis for such transfer. This can be done through the EU Commission's standard contractual clauses. Majema takes the greatest possible security measures to protect your personal data. All identifiable personal data is subject to access restrictions to prevent unauthorized access, alteration or misuse. We will store your data for as long as necessary to fulfill our obligations to you.</li>
+                <li><b>Our legal basis</b><br>We process your data based on our legitimate interest or to enable us to fulfill our obligations to you.</li>
+                <li><b>Cookies – Information collected via www.majema.se</b><br>www.majema.se is managed by Majemaförlaget AB. Majema's website uses cookies to give you access to additional functions, such as previous orders and to simplify logging into your account. You can refuse the use of cookies through your browser settings. Majema uses analysis tools to get a picture of how visitors use our websites, in order to improve the content, navigation and structure of the websites. The analysis tools use JavaScript and cookies and the information generated by these through your use of the website (including your IP address) will be forwarded to the analysis tools' service providers and may be stored on servers outside the EU. The service providers may also transfer this information to third parties if required by law or in cases where a third party processes the information on their behalf. By using Majema's websites without declining third-party cookies, you agree that the service providers process your data in the manner and for the purposes described above. If you do not want your visits to Majema's website to be included in the service providers' statistics, there is an add-on that you can install in your browser.</li>
+                <li><b>Your rights</b><br>According to applicable data protection legislation, you have the right to request that incorrect personal data be corrected, blocked, restricted or deleted. In addition, you can also object to processing or request that your data be transferred to another data controller, so-called data portability. You also have the right to request written information, a so-called register extract, about the personal data we process about you once a year, free of charge, by sending a written signed application to our address below. Mark the application with "Request for register extract". If you are dissatisfied with our processing, you have the right to file a complaint with the Swedish Data Protection Authority.</li>
+                <li><b>Contact information</b><br>Majemaförlaget AB, 556414-9135, is the data controller for the processing of your personal data that you provide when filling out contact forms on the website. Address: Majemaförlaget AB, Box 4016, 131 04 Nacka</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <!-- Terms & Conditions Popup -->
+      <div *ngIf="showTermsPopup">
+        <div class="user-guide-overlay" (click)="closeTermsPopup()"></div>
+        <div class="user-guide-modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+          <button class="user-guide-close-icon" (click)="closeTermsPopup()" aria-label="Close">×</button>
+          <ul style="text-align: justify; font-size: 15px;">
+            <li id="termsTitle">
+              <b>Terms & Conditions — Majema</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>By using Majema, you agree to these Terms and our Privacy Policy.</li>
+              </ul>
+            </li>
+            <li>
+              <b>System requirements</b><br>
+              <ul style="list-style: unset; margin-left: 1.25rem;">
+                <li>Majema's digital learning materials work on computers, tablets and interactive whiteboards. Our digital learning materials are based on HTML5 and JavaScript. This means that older versions of browsers are not always fully supported. We recommend using an updated version of the Chrome browser to best experience our digital learning materials.</li>
+                <li>Here you can download <a href="https://www.google.com/chrome/" target="_blank">Google Chrome for free</a>.</li>
+                <li>
+                  For the best user experience, you should make sure these four points are met:
+                  <ol style="margin-left: 1.5rem;">
+                    <li>Make sure your browser is set to 100% zoom. This is important for the content to look correct on the screen.</li>
+                    <li>Update your browser.</li>
+                    <li>Clear your cache. Select: settings, privacy and security, clear browsing data. (If clearing the cache isn't enough, you can open a new incognito window in Chrome and log in from there.)</li>
+                    <li>If you are using a tablet – update your operating system. This is done under settings.</li>
+                  </ol>
+                </li>
+                <li>
+                  <b>Web browser</b><br>
+                  We recommend that you always update your browser to the latest version.<br>
+                  We test our digital learning materials against the following browsers: Chrome, Edge, Safari and Firefox.
+                </li>
+                <li>
+                  <b>License management</b><br>
+                  All of our websites are licensed to apply to one teacher and class for one year from the date of activation.<br>
+                  If there is a student website, it is activated at the same time as you activate the teacher website.<br>
+                  To extend a license, you need to make a new purchase, in the webshop, through a retailer or with our customer service.<br>
+                  Should a license need to be transferred from one teacher to another, please contact our customer service and we will help you with this.<br>
+                  You can change your account details yourself under the My Account tab when you are logged in.
+                </li>
+                <li>
+                  <b>Operating system</b><br>
+                  We recommend that you always update your operating system to the latest version.<br>
+                  <ul style="list-style: disc; margin-left: 1.5rem;">
+                    <li>Windows 7, 8, 10, 11</li>
+                    <li>Chrome OS (Chromebook)</li>
+                    <li>Mac OS (11 and later)</li>
+                    <li>Android tablet 11 or later (with Chrome browser)</li>
+                    <li>iOS 14 and later (iPad operating system)</li>
+                  </ul>
+                  Majema does not guarantee support for devices and operating systems that are no longer updated by the manufacturer.
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-watermark-row">
+        <a class="footer-watermark" href="https://www.majema.se" target="_blank">www.majema.se</a>
+      </div>
+    </ng-container>
+  </ng-container>
+</footer>
+

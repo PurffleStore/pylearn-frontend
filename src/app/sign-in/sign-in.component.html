@@ -1,0 +1,159 @@
+<section class="signin-popup ai-bg-animate">
+  <div class="ai-particle-bg" aria-hidden="true"></div>
+
+  <!-- Brand Header -->
+  <div class="signin-brand-logo" role="banner">
+    <a routerLink="/" [attr.aria-label]="brandService.name + ' Home'" class="brand-link">
+      <img [src]="brandService.logo" [alt]="brandService.name + ' Logo'" class="brand-logo-img" />
+    </a>
+  </div>
+
+  <!-- Social Media Icons -->
+  <div class="social-icons signin-social-icons">
+    <a [href]="socialLinks.linkedin" target="_blank" rel="noopener noreferrer"
+       class="social-icon linkedin" aria-label="LinkedIn">
+      <i class="fab fa-linkedin-in" aria-hidden="true"></i>
+    </a>
+    <a [href]="socialLinks.youtube" target="_blank" rel="noopener noreferrer"
+       class="social-icon youtube" aria-label="YouTube">
+      <i class="fab fa-youtube" aria-hidden="true"></i>
+    </a>
+    <a [href]="socialLinks.facebook" target="_blank" rel="noopener noreferrer"
+       class="social-icon facebook" aria-label="Facebook">
+      <i class="fab fa-facebook-f" aria-hidden="true"></i>
+    </a>
+    <a [href]="socialLinks.instagram" target="_blank" rel="noopener noreferrer"
+       class="social-icon instagram" aria-label="Instagram">
+      <i class="fab fa-instagram" aria-hidden="true"></i>
+    </a>
+    <a [href]="socialLinks.website" target="_blank" rel="noopener noreferrer"
+       class="social-icon website" aria-label="Website">
+      <i class="fas fa-globe" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <div class="signin-header"></div>
+
+  <div class="auth-card">
+    <div class="card-inner">
+      <!-- Sign-in form -->
+      <div class="card-front">
+        <div class="card-content">
+          <div class="side-panel side-left">
+            <!-- Decorative background image -->
+            <img class="side-img" src="assets/images/login/lion.png" alt="Lion" />
+            <!-- Welcome overlay -->
+            <div class="side-welcome-overlay">
+              <div class="welcome-back-title">Welcome Back!</div>
+              <div class="welcome-back-desc">Sign in to continue your learning journey.</div>
+            </div>
+          </div>
+
+          <div class="main-panel">
+            <!-- Brand header -->
+            <div class="logo-header">
+              <span class="py-learn-text">{{ brandService.name }}</span>
+              <div class="self-learning-system">(A Self-Learning System)</div>
+            </div>
+            
+            <!-- Close button -->
+            <button class="signin-close" type="button" (click)="closeComponent()" aria-label="Close">&times;</button>
+            
+            <!-- Sign in title -->
+            <h2 class="signin-title">
+              <span class="login-text">Login</span>
+            </h2>
+
+            <!-- Error message -->
+            <div *ngIf="errorMessage" class="signin-error-toast" role="alert" [@fadeInOut]>
+              {{ errorMessage }}
+            </div>
+
+            <!-- Sign in form -->
+            <form [formGroup]="signInForm" (ngSubmit)="onSubmit()" novalidate>
+              <div class="signin-row">
+                <div class="signin-field">
+                  <label for="email">Email or Username</label>
+                  <input 
+                    id="email" 
+                    type="email" 
+                    placeholder="you@example.com" 
+                    formControlName="email" 
+                    [class.invalid]="isSubmitted && emailControl?.invalid" 
+                    [attr.aria-invalid]="isSubmitted && emailControl?.invalid" />
+                  <small *ngIf="isSubmitted && emailControl?.errors?.['required']" class="error">
+                    Email or Username is required.
+                  </small>
+                </div>
+              </div>
+              
+              <div class="signin-row">
+                <div class="signin-field">
+                  <label for="password">Password</label>
+                  <div class="input-with-icon">
+                    <input 
+                      id="password" 
+                      [type]="showPassword ? 'text' : 'password'" 
+                      placeholder="••••••••" 
+                      formControlName="password" 
+                      [class.invalid]="isSubmitted && passwordControl?.invalid" 
+                      [attr.aria-invalid]="isSubmitted && passwordControl?.invalid" />
+                    <button 
+                      type="button"
+                      class="eye-toggle"
+                      (click)="togglePasswordVisibility()"
+                      [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                      [attr.aria-pressed]="showPassword">
+                      {{ showPassword ? '🙈' : '👁️' }}
+                    </button>
+                  </div>
+                  <small *ngIf="isSubmitted && passwordControl?.errors?.['required']" class="error">
+                    Password is required.
+                  </small>
+                </div>
+              </div>
+              
+              <div class="signin-row signin-options-row">
+                <div class="remember-me">
+                  <label class="switch">
+                    <input id="rememberMe" type="checkbox" formControlName="rememberMe" />
+                    <span class="slider"></span>
+                  </label>
+                  <span>Remember me</span>
+                </div>
+                <div class="forgot-password">
+                  <a href="#" class="forgot-link" (click)="openForgotPasswordModal($event)">Forgot password?</a>
+                </div>
+              </div>
+              
+              <button class="signin-btn ai-pulse" type="submit" [disabled]="isLoading">
+                <ng-container *ngIf="!isLoading; else loggingIn">
+                  Login
+                </ng-container>
+                <ng-template #loggingIn>
+                  <span class="spinner"></span> Logging in...
+                </ng-template>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div *ngIf="showForgotModal" class="forgot-modal-bg" [@fadeInOut]>
+    <div class="forgot-modal">
+      <h3>Forgot Password</h3>
+      <p>Enter your email to receive password reset instructions.</p>
+      <input type="email" [(ngModel)]="forgotEmail" placeholder="Your email" />
+      <button class="signin-btn" (click)="sendPasswordReset()">Send Reset Link</button>
+      <button class="modal-close" (click)="closeForgotPasswordModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Footer watermark -->
+  <a class="signin-watermark" [href]="socialLinks.website" target="_blank" rel="noopener noreferrer">
+    {{ websiteDisplay }}
+  </a>
+</section>
