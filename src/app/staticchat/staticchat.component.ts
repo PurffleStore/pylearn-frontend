@@ -10,6 +10,8 @@ import {
   NgZone,
   PLATFORM_ID,
 } from '@angular/core';
+import Typo from 'typo-js';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
 @Component({
@@ -63,11 +65,16 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
   private uploadInProgress = false;
   isSpeechProcessing = false;
-
+  showExtraText?: boolean = false;
+  showExtraTextRaw?: string = "";
+  private spell: any;
   constructor(
     private fb: FormBuilder,
     private chatService: ChatService,
-    @Inject(PLATFORM_ID) platformId: object, private zone: NgZone
+    @Inject(PLATFORM_ID) platformId: object, private zone: NgZone,
+ 
+    private http: HttpClient,
+   
   ) {
     this.chatForm = this.fb.group({
       message: ['', Validators.required]
@@ -80,9 +87,21 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       this.searchQuestions(query);
     });
     this.isBrowser = isPlatformBrowser(platformId);
+   
   }
 
   ngOnInit() {
+    if (!this.isBrowser) return;
+
+    Promise.all([
+      this.http.get('assets/dictionaries/en_us.aff', { responseType: 'text' }).toPromise(),
+      this.http.get('assets/dictionaries/en_us.dic', { responseType: 'text' }).toPromise()
+    ]).then(([affData, dicData]) => {
+      this.spell = new Typo('en_US', affData, dicData);
+      console.log('Spell loaded successfully');
+    }).catch(err => {
+      console.error('Dictionary load failed', err);
+    });
     this.messages.push({
       id: 1,
       text: 'Hello children! Today we will learn tenses in a simple and fun way.',
@@ -100,6 +119,8 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
     // start at last pair by default
     setTimeout(() => this.scrollToLastPair(), 0);
+  
+    
   }
 
   ngAfterViewInit() {
@@ -107,7 +128,41 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   }
 
   /* ================= VIDEO CONTROL HELPERS ================= */
+  private autoCorrectInput(value: string): string {
+    if (!this.spell) return value;
 
+    const words = value.split(' ');
+    const lastIndex = words.length - 2;
+
+    if (lastIndex >= 0) {
+      const word = words[lastIndex];
+
+      if (word && !this.spell.check(word)) {
+        const suggestions = this.spell.suggest(word);
+        if (suggestions.length > 0) {
+          words[lastIndex] = suggestions[0];
+        }
+      }
+    }
+
+    return words.join(' ');
+  }
+
+  handleSpaceKey() {
+    const currentValue = this.chatForm.get('message')?.value;
+    if (!currentValue) return;
+
+    const corrected = this.autoCorrectInput(currentValue);
+
+    this.chatForm.get('message')?.setValue(corrected, {
+      emitEvent: false
+    });
+
+    // Keep cursor at end
+    setTimeout(() => {
+      this.messageInput?.nativeElement.focus();
+    }, 0);
+  }
   private safeVideo(): HTMLVideoElement | null {
     try { return this.videoRef.nativeElement; } catch { return null; }
   }
@@ -159,7 +214,9 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
   // Play a response video (from chat) in the same player.
   // After the response ends return to blink.
-  playResponseVideo(url?: string) {
+  playResponseVideo(url?: string, isShow?:boolean, showText?:string) {
+    this.showExtraText = isShow;
+    this.showExtraTextRaw = showText;
     if (!url) return;
     const video = this.safeVideo();
     if (!video) return;
@@ -187,6 +244,31 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       // set state according to actual playing state
       this.isVideoPlaying = !video.paused;
     });
+  }
+
+  // Show detail/story/example text in the bot message and play the video
+  showContentText(pair: { user?: ChatMessage, bot?: ChatMessage }, type: 'detail' | 'story' | 'example') {
+    if (!pair.bot?.rawData) return;
+
+    const textKey = type + '_text';  // e.g. 'detail_text'
+    const urlKey = type + '_url';    // e.g. 'detail_url'
+
+    const text = pair.bot.rawData[textKey];
+    const url = pair.bot.rawData[urlKey];
+
+    // Toggle: if same type is already active, hide it
+    if (pair.bot.rawData._activeContentType === type) {
+      pair.bot.rawData._activeContentType = null;
+      pair.bot.rawData._activeContentText = null;
+    } else {
+      pair.bot.rawData._activeContentType = type;
+      pair.bot.rawData._activeContentText = text || 'No text available for this section.';
+    }
+
+    // Also play the video if URL exists
+    if (url) {
+      this.playResponseVideo(url);
+    }
   }
 
   // Top-right button behavior:
@@ -659,16 +741,12 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
     this.cleanupRecorder();
   }
+
   apiBaseSrc = environment.apiBaseUrl.replace(/\/+$/, '');
   private async sendToBackendForTranscription(blob: Blob): Promise<string> {
     // Change this URL if your backend route is different
     //const url = 'http://localhost:5000/api/transcribe';
-   
-
-    
-
     const url = `${this.apiBaseSrc}/staticchat/transcribe`;
-
     const form = new FormData();
     // Keep extension generic; backend can read mimetype
     form.append('file', blob, 'speech.webm');

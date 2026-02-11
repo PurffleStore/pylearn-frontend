@@ -54,7 +54,6 @@ export class ChatService {
   private readonly apiBaseSrc = environment.apiBaseUrl.replace(/\/+$/, '');
   private readonly apiBase = `${this.apiBaseSrc}/staticchat`;
 
-  
   // =====================================================
   // Static user_id: generated once per browser session.
   // Persists across page navigations within the same tab,

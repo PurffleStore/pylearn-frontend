@@ -25,22 +25,22 @@
           <div *ngIf="pair.bot" class="message-row bot-row">
             <img src="assets/staticchat/teacher.png" class="avatar" />
             <div class="message-bubble bot-message">
-              <span style="font-size:1.5vw;">{{ pair.bot.text }}</span>
-
+              <span style="font-size:1.5vw;" *ngIf="pair.bot.text&&!showExtraText">{{ pair.bot.text }}</span>
+              <span style="font-size:1.5vw;" *ngIf="showExtraText">{{ showExtraTextRaw }}</span>
               <div class="mediaRow" *ngIf="pair.bot.rawData && (pair.bot.rawData?.audio_url || pair.bot.rawData?.video_url)">
                 <button class="chip" *ngIf="pair.bot.rawData?.audio_url" (click)="playAudio(pair.bot.rawData?.audio_url)">
                   🔊 Audio
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.video_url" (click)="playResponseVideo(pair.bot.rawData?.video_url)">
+                <button class="chip" *ngIf="pair.bot.rawData?.video_url" (click)="playResponseVideo(pair.bot.rawData?.video_url,false, pair.bot.rawData?.answer)">
                   🎬 Video
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.detail_url" (click)="playResponseVideo(pair.bot.rawData?.detail_url)">
+                <button class="chip" *ngIf="pair.bot.rawData?.detail_url" (click)="playResponseVideo(pair.bot.rawData?.detail_url, true, pair.bot.rawData?.detail_text)">
                   💡 Detail
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.story_url" (click)="playResponseVideo(pair.bot.rawData?.story_url)">
+                <button class="chip" *ngIf="pair.bot.rawData?.story_url" (click)="playResponseVideo(pair.bot.rawData?.story_url,true, pair.bot.rawData?.story_text)">
                   📖 Story
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.example_url" (click)="playResponseVideo(pair.bot.rawData?.example_url)">
+                <button class="chip" *ngIf="pair.bot.rawData?.example_url" (click)="playResponseVideo(pair.bot.rawData?.example_url,true, pair.bot.rawData?.example_text)">
                   🧪 Example
                 </button>
               </div>
@@ -86,6 +86,7 @@
                [placeholder]="isListening ? '⏺ Listening...' : 'Type your message...'"
                (focus)="onInputFocus()"
                (input)="onInputChange()"
+               (keyup.space)="handleSpaceKey()"
                [readonly]="isSpeechProcessing || isListening" />
 
         <button type="button"
