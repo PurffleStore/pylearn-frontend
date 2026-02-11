@@ -1,0 +1,120 @@
+
+
+<div class="staticchat-container">
+  <div class="nav-bar">MJ-CHAT</div>
+  <div class="chat-container">
+    <div class="chat-window">
+      <button class="arrow-btn up" title="Prev message" (click)="showPreviousPair()">↑</button>
+
+      <!-- MESSAGES -->
+      <div class="chat-messages" #chatContainer>
+        <div *ngFor="let pair of pairedMessages; let i = index" class="pair" [attr.data-index]="i">
+
+          <!-- If user exists in pair (now shown first/top) -->
+          <div *ngIf="pair.user" class="message-row user-row">
+            <div class="message-bubble user-message">
+              <span style="font-size:1.5vw;">{{ pair.user.text }}</span>
+              <div class="message-time">
+                {{ pair.user.timestamp | date:'shortTime' }}
+              </div>
+            </div>
+            <img src="assets/staticchat/student.png" class="avatar" />
+          </div>
+
+          <!-- If bot exists in pair (now shown below user) -->
+          <div *ngIf="pair.bot" class="message-row bot-row">
+            <img src="assets/staticchat/teacher.png" class="avatar" />
+            <div class="message-bubble bot-message">
+              <span style="font-size:1.5vw;">{{ pair.bot.text }}</span>
+
+              <div class="mediaRow" *ngIf="pair.bot.rawData && (pair.bot.rawData?.audio_url || pair.bot.rawData?.video_url)">
+                <button class="chip" *ngIf="pair.bot.rawData?.audio_url" (click)="playAudio(pair.bot.rawData?.audio_url)">
+                  🔊 Audio
+                </button>
+                <button class="chip" *ngIf="pair.bot.rawData?.video_url" (click)="playResponseVideo(pair.bot.rawData?.video_url)">
+                  🎬 Video
+                </button>
+                <button class="chip" *ngIf="pair.bot.rawData?.detail_url" (click)="playResponseVideo(pair.bot.rawData?.detail_url)">
+                  💡 Detail
+                </button>
+                <button class="chip" *ngIf="pair.bot.rawData?.story_url" (click)="playResponseVideo(pair.bot.rawData?.story_url)">
+                  📖 Story
+                </button>
+                <button class="chip" *ngIf="pair.bot.rawData?.example_url" (click)="playResponseVideo(pair.bot.rawData?.example_url)">
+                  🧪 Example
+                </button>
+              </div>
+
+              <div class="message-time">
+                {{ pair.bot.timestamp | date:'shortTime' }}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Typing indicator -->
+        <div *ngIf="isTyping" class="typing-indicator">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+      <button class="arrow-btn down" title="Next message" (click)="showNextPair()">↓</button>
+
+      <!-- SUGGESTIONS DROPDOWN -->
+      <div *ngIf="showSuggestions && suggestedQuestions.length > 0" class="suggestions-box">
+        <div *ngFor="let question of suggestedQuestions"
+             class="suggestion-item"
+             (click)="selectQuestion(question)">
+          {{ question }}
+        </div>
+      </div>
+
+      <!-- INPUT BAR -->
+      <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-input">
+        <!--<input type="text"
+           formControlName="message"
+           #messageInput
+           placeholder="Type your message..."
+           (focus)="onInputFocus()"
+           (input)="onInputChange()"
+           [readonly]="isSpeechProcessing" />-->
+        <input type="text"
+               formControlName="message"
+               #messageInput
+               [placeholder]="isListening ? '⏺ Listening...' : 'Type your message...'"
+               (focus)="onInputFocus()"
+               (input)="onInputChange()"
+               [readonly]="isSpeechProcessing || isListening" />
+
+        <button type="button"
+                class="micBtn"
+                [disabled]="!supported || isListening"
+                (click)="toggleMic()">
+          🎤
+        </button>
+
+        <div class="actions" *ngIf="showActions">
+          <button class="reject" (click)="reject()">❌</button>
+          <button class="accept" (click)="accept()">✅</button>
+
+        </div>
+
+        <button type="submit" [disabled]="!chatForm.valid">
+          ➤
+        </button>
+      </form>
+
+    </div>
+
+
+    <div class="video-window">
+
+      <video #videoPlayer autoplay muted playsinline></video>
+      <img class="play-pause-btn"
+           [src]="(currentVideoType !== 'blink' && isVideoPlaying) ? 'assets/staticchat/pause.png' : 'assets/staticchat/play.png'"
+           (click)="togglePlayPause()" />
+    </div>
+  </div>
+</div>

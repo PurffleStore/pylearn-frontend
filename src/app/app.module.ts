@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule} from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { AppRoutingModule } from './app-routing.module';
@@ -19,18 +19,21 @@ import { SignInComponent } from './sign-in/sign-in.component';
 import { PronunciationComponent } from './pronunciation/pronunciation.component';
 import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
+import { StaticChatComponent } from './staticchat/staticchat.component';
 
 
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
-    PronunciationComponent    
+    PronunciationComponent,
+    StaticChatComponent  
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     FormsModule,
+    ReactiveFormsModule,
     HttpClientModule,
     CommonModule,
     MatDialogModule,

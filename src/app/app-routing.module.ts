@@ -4,6 +4,7 @@ import { ChatComponent } from './chat/chat.component';
 import { HomeComponent } from './home/home.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { authGuard } from './core/guards/auth.guard';
+import { StaticChatComponent } from './staticchat/staticchat.component';
 
 /**
  * Application routing configuration
@@ -37,6 +38,12 @@ export const routes: Routes = [
     component: ChatComponent,
     canActivate: [authGuard],
     data: { title: 'Chat', requiresAuth: true }
+  },
+  {
+    path: 'staticchat',
+    component: StaticChatComponent,
+    data: { title: 'Staticchat' }
+
   },
 
   // Fallback route
