@@ -20,6 +20,7 @@ import { PronunciationComponent } from './pronunciation/pronunciation.component'
 import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
+import { ChatLLMComponent } from './chatllm/chatllm.component';
 
 
 @NgModule({
@@ -27,7 +28,8 @@ import { StaticChatComponent } from './staticchat/staticchat.component';
     AppComponent,
     HomeComponent,
     PronunciationComponent,
-    StaticChatComponent  
+    StaticChatComponent,
+    ChatLLMComponent
   ],
   imports: [
     BrowserModule,

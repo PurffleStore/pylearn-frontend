@@ -1,0 +1,256 @@
+
+
+<div class="staticchat-container">
+   <img routerLink="/" src="assets/staticchat/back.png" class="back-btn"/>
+  <div class="nav-bar">
+   
+    MJ-CHAT</div>
+  <div class="chat-container">
+    <div class="chat-window">
+
+      <img src="assets/staticchat/up.png" class="arrow-btn up" title="Prev message" (click)="showPreviousPair()"/>
+      <!-- <button class="arrow-btn up" title="Prev message" (click)="showPreviousPair()">↑</button> -->
+
+      <!-- MESSAGES -->
+      <div class="chat-messages" #chatContainer>
+        <div *ngFor="let pair of pairedMessages; let i = index" class="pair" [attr.data-index]="i">
+
+          <!-- If user exists in pair (now shown first/top) -->
+          <div *ngIf="pair.user" class="message-row user-row">
+            <div class="message-bubble user-message">
+              <span style="font-size:1.5vw;">{{ pair.user.text }}</span>
+              <div class="message-time">
+                {{ pair.user.timestamp | date:'shortTime' }}
+              </div>
+            </div>
+            <img src="assets/staticchat/student.png" class="avatar" />
+          </div>
+
+          <!-- If bot exists in pair (now shown below user) -->
+          <div *ngIf="pair.bot" class="message-row bot-row">
+            <img src="assets/staticchat/teacher.png" class="avatar" />
+            <div class="message-bubble bot-message">
+              <span>{{ pair.bot.text }}</span>
+
+               <!-- Media buttons section - replace the existing mediaRow div -->
+<div class="mediaRow"
+     *ngIf="pair.bot.rawData &&
+    (pair.bot.rawData?.audio_urls?.length > 0 ||
+     pair.bot.rawData?.video_urls?.length > 0 ||
+     pair.bot.rawData?.detail_urls?.length > 0 ||
+     pair.bot.rawData?.story_urls?.length > 0 ||
+     pair.bot.rawData?.example_urls?.length > 0 ||
+     pair.bot.rawData?.audio_url ||
+     pair.bot.rawData?.video_url ||
+     pair.bot.rawData?.detail_url ||
+     pair.bot.rawData?.story_url ||
+     pair.bot.rawData?.example_url)">
+
+  <!-- Multiple Audio files -->
+  <ng-container *ngIf="pair.bot.rawData?.audio_urls?.length > 0">
+    <button class="chip audio-btn"
+            *ngFor="let audio of pair.bot.rawData.audio_urls; let i = index"
+            (click)="playAudio(audio)"
+            [title]="'Audio ' + (i+1)">
+      🔊 Audio {{ pair.bot.rawData.audio_urls.length > 1 ? (i+1) : '' }}
+    </button>
+  </ng-container>
+  <!-- Single Audio -->
+  <button class="chip" *ngIf="!pair.bot.rawData?.audio_urls?.length && pair.bot.rawData?.audio_url"
+          (click)="playAudio(pair.bot.rawData?.audio_url)">
+    🔊 Audio
+  </button>
+
+  <!-- Multiple Main Videos -->
+  <ng-container *ngIf="pair.bot.rawData?.video_urls?.length > 0">
+    <button class="chip video-btn"
+            *ngFor="let video of pair.bot.rawData.video_urls; let i = index"
+            (click)="playResponseVideo(
+              video,
+              false,
+              pair.bot.rawData?.answer,
+              pair.bot,
+              'main',
+              i
+            )"
+            [class.active]="pair.bot._mediaType === 'main' && pair.bot._activeMediaIndex === i">
+      🎬 Video {{ pair.bot.rawData.video_urls.length > 1 ? (i+1) : '' }}
+    </button>
+  </ng-container>
+  <!-- Single Main Video -->
+  <button class="chip" *ngIf="!pair.bot.rawData?.video_urls?.length && pair.bot.rawData?.video_url"
+          (click)="playResponseVideo(
+            pair.bot.rawData?.video_url,
+            false,
+            pair.bot.rawData?.answer,
+            pair.bot,
+            'main'
+          )">
+    🎬 Video
+  </button>
+
+  <!-- Multiple Detail buttons -->
+  <ng-container *ngIf="pair.bot.rawData?.detail_urls?.length > 0">
+    <button class="chip detail-btn"
+            *ngFor="let detail of pair.bot.rawData.detail_urls; let i = index"
+            (click)="playResponseVideo(
+              detail,
+              true,
+              pair.bot.rawData.detail_texts?.[i] || 'Detail ' + (i+1),
+              pair.bot,
+              'detail',
+              i
+            )"
+            [class.active]="pair.bot._mediaType === 'detail' && pair.bot._activeMediaIndex === i">
+      💡 Detail {{ pair.bot.rawData.detail_urls.length > 1 ? (i+1) : '' }}
+    </button>
+  </ng-container>
+  <!-- Single Detail -->
+  <button class="chip" *ngIf="!pair.bot.rawData?.detail_urls?.length && pair.bot.rawData?.detail_url"
+          (click)="playResponseVideo(
+            pair.bot.rawData?.detail_url,
+            true,
+            pair.bot.rawData?.detail_text,
+            pair.bot,
+            'detail'
+          )">
+    💡 Detail
+  </button>
+
+  <!-- Multiple Story buttons -->
+  <ng-container *ngIf="pair.bot.rawData?.story_urls?.length > 0">
+    <button class="chip story-btn"
+            *ngFor="let story of pair.bot.rawData.story_urls; let i = index"
+            (click)="playResponseVideo(
+              story,
+              true,
+              pair.bot.rawData.story_texts?.[i] || 'Story ' + (i+1),
+              pair.bot,
+              'story',
+              i
+            )"
+            [class.active]="pair.bot._mediaType === 'story' && pair.bot._activeMediaIndex === i">
+      📖 Story {{ pair.bot.rawData.story_urls.length > 1 ? (i+1) : '' }}
+    </button>
+  </ng-container>
+  <!-- Single Story -->
+  <button class="chip" *ngIf="!pair.bot.rawData?.story_urls?.length && pair.bot.rawData?.story_url"
+          (click)="playResponseVideo(
+            pair.bot.rawData?.story_url,
+            true,
+            pair.bot.rawData?.story_text,
+            pair.bot,
+            'story'
+          )">
+    📖 Story
+  </button>
+
+  <!-- Multiple Example buttons -->
+  <ng-container *ngIf="pair.bot.rawData?.example_urls?.length > 0">
+    <button class="chip example-btn"
+            *ngFor="let example of pair.bot.rawData.example_urls; let i = index"
+            (click)="playResponseVideo(
+              example,
+              true,
+              pair.bot.rawData.example_texts?.[i] || 'Example ' + (i+1),
+              pair.bot,
+              'example',
+              i
+            )"
+            [class.active]="pair.bot._mediaType === 'example' && pair.bot._activeMediaIndex === i">
+      🧪 Example {{ pair.bot.rawData.example_urls.length > 1 ? (i+1) : '' }}
+    </button>
+  </ng-container>
+  <!-- Single Example -->
+  <button class="chip" *ngIf="!pair.bot.rawData?.example_urls?.length && pair.bot.rawData?.example_url"
+          (click)="playResponseVideo(
+            pair.bot.rawData?.example_url,
+            true,
+            pair.bot.rawData?.example_text,
+            pair.bot,
+            'example'
+          )">
+    🧪 Example
+  </button>
+
+</div>
+
+<!-- Show current media indicator -->
+<div class="media-indicator" *ngIf="pair.bot._mediaType && pair.bot.rawData?.[pair.bot._mediaType + '_urls']?.length > 1">
+  {{ pair.bot._mediaType | titlecase }} {{ (pair.bot._activeMediaIndex || 0) + 1 }} / {{ pair.bot.rawData[pair.bot._mediaType + '_urls'].length }}
+</div>
+
+              <div class="message-time">
+                {{ pair.bot.timestamp | date:'shortTime' }}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Typing indicator -->
+        <div *ngIf="isTyping" class="typing-indicator">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+      <!-- <button class="arrow-btn down" title="Next message" (click)="showNextPair()">↓</button> -->
+      <img src="assets/staticchat/down.png" class="arrow-btn down" title="Next message" (click)="showNextPair()"/>
+
+      <!-- SUGGESTIONS DROPDOWN -->
+      <div *ngIf="showSuggestions && suggestedQuestions.length > 0" class="suggestions-box">
+        <div *ngFor="let question of suggestedQuestions"
+             class="suggestion-item"
+             (click)="selectQuestion(question)">
+          {{ question }}
+        </div>
+      </div>
+
+      <!-- INPUT BAR -->
+      <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-input">
+        <!--<input type="text"
+           formControlName="message"
+           #messageInput
+           placeholder="Type your message..."
+           (focus)="onInputFocus()"
+           (input)="onInputChange()"
+           [readonly]="isSpeechProcessing" />-->
+        <input type="text"
+               formControlName="message"
+               #messageInput
+               [placeholder]="isListening ? '⏺ Listening...' : 'Type your message...'"
+               (focus)="onInputFocus()"
+               (input)="onInputChange()"
+               [readonly]="isSpeechProcessing || isListening" />
+
+        <button type="button"
+                class="micBtn"
+                [disabled]="!supported || isListening"
+                (click)="toggleMic()">
+          🎤
+        </button>
+
+        <div class="actions" *ngIf="showActions">
+          <button class="reject" (click)="reject()">❌</button>
+          <button class="accept" (click)="accept()">✅</button>
+
+        </div>
+
+        <button type="submit" [disabled]="!chatForm.valid">
+          ➤
+        </button>
+      </form>
+
+    </div>
+
+
+    <div class="video-window">
+
+      <video #videoPlayer autoplay muted playsinline></video>
+      <img class="play-pause-btn"
+           [src]="(currentVideoType !== 'blink' && isVideoPlaying) ? 'assets/staticchat/pause.png' : 'assets/staticchat/play.png'"
+           (click)="togglePlayPause()" />
+    </div>
+  </div>
+</div>

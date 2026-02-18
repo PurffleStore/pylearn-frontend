@@ -5,6 +5,7 @@ import { HomeComponent } from './home/home.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { authGuard } from './core/guards/auth.guard';
 import { StaticChatComponent } from './staticchat/staticchat.component';
+import { ChatLLMComponent } from './chatllm/chatllm.component';
 
 /**
  * Application routing configuration
@@ -43,6 +44,11 @@ export const routes: Routes = [
     path: 'staticchat',
     component: StaticChatComponent,
     data: { title: 'Staticchat' }
+  },
+   {
+    path: 'chatllm',
+    component: ChatLLMComponent,
+    data: { title: 'Chatllm' }
 
   },
 

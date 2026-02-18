@@ -1,38 +1,69 @@
-// (file header unchanged)
-import { Component, OnInit, ViewChild, ElementRef, HostListener, AfterViewInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ChatService, ChatMessage, SearchResponse, Question } from './staticchat.service';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { isPlatformBrowser } from '@angular/common';
+// staticchat.component.ts
 import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  HostListener,
+  AfterViewInit,
   Inject,
   NgZone,
   PLATFORM_ID,
 } from '@angular/core';
-import Typo from 'typo-js';
-import { HttpClient } from '@angular/common/http';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ChatLLMService, ChatMessage, SearchResponse, Question } from './chatllm.service';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../environments/environment';
 
+// Interface for media collections from backend
+interface MediaCollection {
+  audio_urls: string[];
+  video_urls: string[];
+  detail_urls: string[];
+  story_urls: string[];
+  example_urls: string[];
+  detail_texts: string[];
+  story_texts: string[];
+  example_texts: string[];
+  keywords: string[];
+}
+
 @Component({
-  selector: 'app-staticchat',
-  templateUrl: './staticchat.component.html',
-  styleUrls: ['./staticchat.component.css']
+  selector: 'app-chatllm',
+  templateUrl: './chatllm.component.html',
+  styleUrls: ['./chatllm.component.css']
 })
-export class StaticChatComponent implements OnInit, AfterViewInit {
+export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
   @ViewChild('videoPlayer') videoRef!: ElementRef<HTMLVideoElement>;
 
   chatForm: FormGroup;
-  messages: (ChatMessage & { suggestions?: string[] })[] = [];
+  messages: (ChatMessage & { 
+    suggestions?: string[],
+    _baseText?: string,
+    _activeContentType?: string | null,
+    _activeContentText?: string | null,
+    _activeMediaIndex?: number,
+    _mediaType?: string
+  })[] = [];
   isTyping = false;
+
+  // ✅ Suggestions shown near input (same place always)
   suggestedQuestions: string[] = [];
   showSuggestions = false;
+
+  // Optional local list for search/autocomplete while typing
   allQuestions: Question[] = [];
+
   searchQuery = new Subject<string>();
   selectedQuestions: Set<string> = new Set();
+
+  // ✅ Follow-ups from backend (/ask response)
+  followupQuestions: string[] = [];
 
   // navigation index for pair view
   currentPairIndex = 0;
@@ -42,19 +73,18 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   introVideoSrc = 'assets/staticchat/intro.mp4';
 
   // Video state
-  // 'blink' | 'intro' | 'response' to indicate currently loaded video type
   currentVideoType: 'blink' | 'intro' | 'response' = 'blink';
   currentResponseVideoUrl: string | null = null;
-  // whether the currently loaded non-idle video is playing
   isVideoPlaying = false;
 
   // audio player for response audio
   private audioPlayer: HTMLAudioElement | null = null;
+
   hasChatStarted = false;
   lastResponseVideoUrl: string | null = null;
 
   supported = false;
-  isListening = false; // we will treat this as "isRecording"
+  isListening = false; // treat this as "isRecording"
   showActions = false;
 
   private isBrowser = false;
@@ -65,16 +95,12 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
   private uploadInProgress = false;
   isSpeechProcessing = false;
-  showExtraText?: boolean = false;
-  showExtraTextRaw?: string = "";
-  private spell: any;
+
   constructor(
     private fb: FormBuilder,
-    private chatService: ChatService,
-    @Inject(PLATFORM_ID) platformId: object, private zone: NgZone,
- 
-    private http: HttpClient,
-   
+    private chatService: ChatLLMService,
+    @Inject(PLATFORM_ID) platformId: object,
+    private zone: NgZone
   ) {
     this.chatForm = this.fb.group({
       message: ['', Validators.required]
@@ -86,22 +112,11 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     ).subscribe(query => {
       this.searchQuestions(query);
     });
+
     this.isBrowser = isPlatformBrowser(platformId);
-   
   }
 
   ngOnInit() {
-    if (!this.isBrowser) return;
-
-    Promise.all([
-      this.http.get('assets/dictionaries/en_us.aff', { responseType: 'text' }).toPromise(),
-      this.http.get('assets/dictionaries/en_us.dic', { responseType: 'text' }).toPromise()
-    ]).then(([affData, dicData]) => {
-      this.spell = new Typo('en_US', affData, dicData);
-      console.log('Spell loaded successfully');
-    }).catch(err => {
-      console.error('Dictionary load failed', err);
-    });
     this.messages.push({
       id: 1,
       text: 'Hello children! Today we will learn tenses in a simple and fun way.',
@@ -115,12 +130,14 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     const hasMediaRecorder = typeof (window as any).MediaRecorder !== 'undefined';
     this.supported = hasGetUserMedia && hasMediaRecorder;
 
+    // Optional: load all questions (for search while typing)
     this.loadAllQuestions();
+
+    // ✅ Load initial suggestions from backend (/api/suggestions)
+    this.loadInitialSuggestionsFromApi();
 
     // start at last pair by default
     setTimeout(() => this.scrollToLastPair(), 0);
-  
-    
   }
 
   ngAfterViewInit() {
@@ -128,41 +145,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   }
 
   /* ================= VIDEO CONTROL HELPERS ================= */
-  private autoCorrectInput(value: string): string {
-    if (!this.spell) return value;
 
-    const words = value.split(' ');
-    const lastIndex = words.length - 2;
-
-    if (lastIndex >= 0) {
-      const word = words[lastIndex];
-
-      if (word && !this.spell.check(word)) {
-        const suggestions = this.spell.suggest(word);
-        if (suggestions.length > 0) {
-          words[lastIndex] = suggestions[0];
-        }
-      }
-    }
-
-    return words.join(' ');
-  }
-
-  handleSpaceKey() {
-    const currentValue = this.chatForm.get('message')?.value;
-    if (!currentValue) return;
-
-    const corrected = this.autoCorrectInput(currentValue);
-
-    this.chatForm.get('message')?.setValue(corrected, {
-      emitEvent: false
-    });
-
-    // Keep cursor at end
-    setTimeout(() => {
-      this.messageInput?.nativeElement.focus();
-    }, 0);
-  }
   private safeVideo(): HTMLVideoElement | null {
     try { return this.videoRef.nativeElement; } catch { return null; }
   }
@@ -181,16 +164,14 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
     this.currentVideoType = 'blink';
     this.currentResponseVideoUrl = null;
-    // For blink we show the Play icon, so set isVideoPlaying = false
     this.isVideoPlaying = false;
   }
 
-  // Load and start intro (user intends to watch intro)
+  // Load and start intro
   playIntroVideo() {
     const video = this.safeVideo();
     if (!video) return;
 
-    // stop any audio
     if (this.audioPlayer && !this.audioPlayer.paused) { this.audioPlayer.pause(); }
 
     video.onended = () => {
@@ -202,7 +183,6 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     video.muted = false;
     video.currentTime = 0;
     video.play().catch(() => {
-      // fallback muted play if autoplay blocked
       video.muted = true;
       video.play().catch(() => { /* ignore */ });
     });
@@ -212,69 +192,92 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     this.isVideoPlaying = true;
   }
 
-  // Play a response video (from chat) in the same player.
-  // After the response ends return to blink.
-  playResponseVideo(url?: string, isShow?: boolean, showText?: string, bot?: any) {
-
+  playResponseVideo(
+    url?: string,
+    isShowText: boolean = false,
+    showText?: string,
+    botMsg?: any,
+    contentType?: 'detail' | 'story' | 'example' | 'main',
+    index: number = 0
+  ) {
     if (!url) return;
 
-    // ✅ Store text only inside that bot message
-    if (bot) {
-      bot._activeText = isShow ? showText : null;
+    // Update bot message text
+    if (botMsg) {
+      botMsg._baseText = botMsg._baseText ?? botMsg.text;
+      botMsg._activeMediaIndex = index;
+      botMsg._mediaType = contentType;
+
+      if (isShowText) {
+        botMsg._activeContentType = contentType;
+        botMsg.text = showText || 'No text available.';
+      } else {
+        botMsg._activeContentType = 'main';
+        botMsg.text = botMsg._baseText;
+      }
     }
 
     const video = this.safeVideo();
     if (!video) return;
 
+    // stop audio if playing
     if (this.audioPlayer && !this.audioPlayer.paused) {
       this.audioPlayer.pause();
     }
 
-    video.onended = () => {
-      this.playBlinkVideo();
-    };
+    video.pause();
 
-    video.src = url;
+    const absUrl = new URL(url, window.location.href).href;
+    if (video.src !== absUrl) {
+      video.src = url;
+    }
+
     video.loop = false;
     video.muted = false;
     video.currentTime = 0;
+    video.load();
+
+    video.onended = () => this.playBlinkVideo();
+
+    this.currentVideoType = 'response';
+    this.currentResponseVideoUrl = url;
 
     video.play().then(() => {
       this.isVideoPlaying = true;
-
-      // ✅ VERY IMPORTANT FIX
-      this.currentVideoType = 'response';
-      this.currentResponseVideoUrl = url;
-
     }).catch(() => {
       video.muted = true;
-      video.play().catch(() => { });
+      video.play().catch(() => {});
+      this.isVideoPlaying = !video.paused;
     });
   }
-  // Show detail/story/example text in the bot message and play the video
-  showContentText(pair: { user?: ChatMessage, bot?: ChatMessage }, type: 'detail' | 'story' | 'example') {
-    if (!pair.bot?.rawData) return;
 
-    const textKey = type + '_text';  // e.g. 'detail_text'
-    const urlKey = type + '_url';    // e.g. 'detail_url'
-
-    const text = pair.bot.rawData[textKey];
-    const url = pair.bot.rawData[urlKey];
-
-    // Toggle: if same type is already active, hide it
-    if (pair.bot.rawData._activeContentType === type) {
-      pair.bot.rawData._activeContentType = null;
-      pair.bot.rawData._activeContentText = null;
-    } else {
-      pair.bot.rawData._activeContentType = type;
-      pair.bot.rawData._activeContentText = text || 'No text available for this section.';
-    }
-
-    // Also play the video if URL exists
-    if (url) {
-      this.playResponseVideo(url);
-    }
-  }
+  // Cycle through multiple media items
+// Cycle through multiple media items
+cycleMedia(botMsg: any, mediaType: string, indexChange: number = 1) {
+  if (!botMsg?.rawData) return;
+  
+  const rawData = botMsg.rawData;
+  const mediaKey = mediaType + '_urls';
+  const textKey = mediaType + '_texts';
+  
+  // Check if we have multiple items with proper null check
+  if (!rawData[mediaKey]?.length) return;
+  
+  const currentIndex = botMsg._activeMediaIndex || 0;
+  const totalItems = rawData[mediaKey].length;
+  
+  // Calculate new index
+  let newIndex = (currentIndex + indexChange + totalItems) % totalItems;
+  botMsg._activeMediaIndex = newIndex;
+  botMsg._mediaType = mediaType;
+  
+  // Get the URL and text for this index
+  const url = rawData[mediaKey][newIndex];
+  const text = rawData[textKey]?.[newIndex] || `Content ${newIndex + 1}`;
+  
+  // Play the video/show text
+  this.playResponseVideo(url, true, text, botMsg, mediaType as any, newIndex);
+}
 
   // Top-right button behavior:
   // - If blink is running → start intro.
@@ -311,6 +314,22 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /* ================= SUGGESTIONS (API) ================= */
+
+  // ✅ Initial top 5 from backend: GET /api/suggestions
+  private loadInitialSuggestionsFromApi() {
+    this.chatService.getSuggestions().subscribe({
+      next: (res) => {
+        const list = (res?.suggestions || []).map(s => s.question).filter(Boolean);
+        this.suggestedQuestions = list.slice(0, 5);
+        this.showSuggestions = this.suggestedQuestions.length > 0;
+      },
+      error: () => {
+        this.suggestedQuestions = [];
+        this.showSuggestions = false;
+      }
+    });
+  }
 
   /* ================= CHAT SYSTEM ================= */
 
@@ -328,31 +347,37 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   onInputFocus() { this.showQuestionSuggestions(); }
   onInputClick() { this.showQuestionSuggestions(); }
 
+  // ✅ Same place for suggestions:
+  // - If followups exist -> show followups
+  // - Else -> show initial suggestions from backend
   showQuestionSuggestions() {
-    if (this.allQuestions.length === 0) {
-      this.loadAllQuestions();
+    const currentInput = (this.chatForm.get('message')?.value || '').trim();
+
+    // While typing -> local autocomplete (optional)
+    if (currentInput.length > 0) {
+      this.searchQuestions(currentInput);
       return;
     }
 
-    if (this.messages.length <= 1) {
-      this.suggestedQuestions = this.allQuestions.slice(0, 5).map(q => q.question);
-      this.showSuggestions = true;
+    // If followups exist -> show them
+    if (this.followupQuestions.length > 0) {
+      this.suggestedQuestions = this.followupQuestions.slice(0, 5);
+      this.showSuggestions = this.suggestedQuestions.length > 0;
       return;
     }
 
-    const unselected = this.allQuestions.filter(q => !this.selectedQuestions.has(q.question));
-
-    if (unselected.length === 0) {
-      const shuffled = [...this.allQuestions].sort(() => 0.5 - Math.random());
-      this.suggestedQuestions = shuffled.slice(0, 5).map(q => q.question);
-    } else {
-      this.suggestedQuestions = unselected.slice(0, 5).map(q => q.question);
-    }
-
-    this.showSuggestions = true;
+    // Else show initial top 5 from backend
+    this.loadInitialSuggestionsFromApi();
   }
 
+  // Optional: local search when user types
   searchQuestions(query: string) {
+    if (!this.allQuestions || this.allQuestions.length === 0) {
+      // if not loaded, just show initial suggestions
+      this.loadInitialSuggestionsFromApi();
+      return;
+    }
+
     if (query.length > 0) {
       const filtered = this.allQuestions
         .filter(q => q.question.toLowerCase().includes(query.toLowerCase()))
@@ -370,6 +395,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     query ? this.searchQuery.next(query) : this.showQuestionSuggestions();
   }
 
+  // Click on suggestion -> ask immediately
   selectQuestion(question: string) {
     this.selectedQuestions.add(question);
     this.chatForm.get('message')?.setValue(question);
@@ -379,71 +405,180 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   }
 
   sendMessage() {
-    const message = this.chatForm.get('message')?.value.trim();
-    if (!message) return;
+  const message = (this.chatForm.get('message')?.value || '').trim();
+  if (!message) return;
 
-    this.messages.push({
-      id: this.messages.length + 1,
-      text: message,
-      sender: 'user',
-      timestamp: new Date()
-    });
-    this.hasChatStarted = true;
-    this.chatForm.reset();
-    this.showSuggestions = false;
-    this.isTyping = true;
+  // 1) Push user message
+  this.messages.push({
+    id: this.messages.length + 1,
+    text: message,
+    sender: 'user',
+    timestamp: new Date()
+  });
 
-    // show the pair containing this user message (may be a user-only pair until bot replies)
-    setTimeout(() => this.scrollToLastPair(), 50);
+  this.hasChatStarted = true;
+  this.chatForm.reset();
+  this.showSuggestions = false;
+  this.isTyping = true;
 
-    this.chatService.searchQuestion(message).subscribe({
-      next: (response: SearchResponse) => {
-        this.isTyping = false;
+  setTimeout(() => this.scrollToLastPair(), 50);
 
-        const botText = response.answer
-          ? response.answer.replace(/\n/g, ' ')
-          : (response.message || 'Sorry, I could not find an answer.');
+  // 2) Call backend
+  this.chatService.searchQuestion(message).subscribe({
+    next: (response: SearchResponse & Partial<MediaCollection>) => {
+      this.isTyping = false;
 
-        this.messages.push({
-          id: this.messages.length + 1,
-          text: botText,
-          sender: 'bot',
-          timestamp: new Date(),
-          rawData: response
-        });
+      const botText = response.answer
+        ? response.answer.replace(/\n/g, ' ')
+        : (response.message || 'Sorry, I could not find an answer.');
 
-        // scroll to the new pair (user+bot)
-        setTimeout(() => this.scrollToLastPair(), 50);
+      // ✅ 3) Push bot message with extra fields and media collections
+      const botMessage: any = {
+        id: this.messages.length + 1,
+        text: botText,
+        sender: 'bot',
+        timestamp: new Date(),
+        rawData: response,
 
-        // Play audio/video returned by the response
-        if (response.audio_url) {
-          this.playAudio(response.audio_url);
-        }
-        if (response.video_url) {
-          this.lastResponseVideoUrl = response.video_url; // ✅ remember it
-          this.playResponseVideo(response.video_url);
-        }
+        // Store original answer once
+        _baseText: botText,
+        _activeContentType: null,
+        _activeContentText: null,
+        
+        // Track which media item is currently active (for multi-media)
+        _activeMediaIndex: 0,
+        _mediaType: 'main'
+      };
 
-      },
-      error: () => {
-        this.isTyping = false;
-        this.messages.push({
-          id: this.messages.length + 1,
-          text: 'Sorry, I encountered an error. Please try again.',
-          sender: 'bot',
-          timestamp: new Date()
-        });
-        setTimeout(() => this.scrollToLastPair(), 50);
+      this.messages.push(botMessage);
+
+      setTimeout(() => this.scrollToLastPair(), 50);
+
+      // 4) Handle multiple audio/video files with proper null checks
+      
+      // Play first audio if multiple exist
+      if (response.audio_urls?.length) {
+        this.playAudio(response.audio_urls[0]);
+      } else if (response.audio_url) {
+        this.playAudio(response.audio_url);
       }
-    });
-  }
+      
+      // Handle multiple videos
+      if (response.video_urls?.length) {
+        this.lastResponseVideoUrl = response.video_urls[0];
+        this.playResponseVideo(
+          response.video_urls[0], 
+          false, 
+          response.answer, 
+          botMessage, 
+          'main',
+          0
+        );
+      } else if (response.video_url) {
+        this.lastResponseVideoUrl = response.video_url;
+        this.playResponseVideo(response.video_url, false, response.answer, botMessage, 'main');
+      }
 
-  // Play audio directly (uses a single HTMLAudioElement instance)
+      // 5) Update suggestions area with followups
+      if ((response as any).followups?.length) {
+        this.followupQuestions = (response as any).followups
+          .map((f: any) => f.question)
+          .filter(Boolean)
+          .slice(0, 5);
+
+        this.suggestedQuestions = this.followupQuestions;
+        this.showSuggestions = this.suggestedQuestions.length > 0;
+      } else {
+        this.followupQuestions = [];
+        this.loadInitialSuggestionsFromApi();
+      }
+    },
+
+    error: () => {
+      this.isTyping = false;
+
+      this.messages.push({
+        id: this.messages.length + 1,
+        text: 'Sorry, I encountered an error. Please try again.',
+        sender: 'bot',
+        timestamp: new Date()
+      });
+
+      setTimeout(() => this.scrollToLastPair(), 50);
+
+      this.followupQuestions = [];
+      this.loadInitialSuggestionsFromApi();
+    }
+  });
+}
+
+  // Updated showContentText for multiple items
+ // Updated showContentText for multiple items
+showContentText(pair: { user?: ChatMessage, bot?: any }, type: 'detail' | 'story' | 'example') {
+  if (!pair.bot?.rawData) return;
+
+  const urlsKey = type + '_urls';
+  const textsKey = type + '_texts';
+
+  const urls = pair.bot.rawData[urlsKey];
+  const texts = pair.bot.rawData[textsKey];
+
+  // If multiple items exist with proper null check
+  if (urls?.length > 1) {
+    // If clicking same type, cycle to next
+    if (pair.bot._activeContentType === type) {
+      const currentIndex = pair.bot._activeMediaIndex || 0;
+      const nextIndex = (currentIndex + 1) % urls.length;
+      
+      pair.bot._activeMediaIndex = nextIndex;
+      pair.bot._activeContentType = type;
+      pair.bot._activeContentText = texts?.[nextIndex] || `Content ${nextIndex + 1}`;
+      pair.bot.text = texts?.[nextIndex] || `Content ${nextIndex + 1}`;
+      
+      // Play corresponding video
+      if (urls[nextIndex]) {
+        this.playResponseVideo(urls[nextIndex], true, pair.bot._activeContentText, pair.bot, type, nextIndex);
+      }
+    } else {
+      // First time clicking this type - show first item
+      pair.bot._activeMediaIndex = 0;
+      pair.bot._activeContentType = type;
+      pair.bot._activeContentText = texts?.[0] || 'No text available.';
+      pair.bot.text = texts?.[0] || 'No text available.';
+      
+      if (urls[0]) {
+        this.playResponseVideo(urls[0], true, pair.bot._activeContentText, pair.bot, type, 0);
+      }
+    }
+  } else {
+    // Single item - original behavior
+    const textKey = type + '_text';
+    const urlKey = type + '_url';
+
+    const text = pair.bot.rawData[textKey];
+    const url = pair.bot.rawData[urlKey];
+
+    if (pair.bot._activeContentType === type) {
+      pair.bot._activeContentType = null;
+      pair.bot._activeContentText = null;
+      pair.bot.text = pair.bot._baseText;
+    } else {
+      pair.bot._activeContentType = type;
+      pair.bot._activeContentText = text || 'No text available.';
+      pair.bot.text = text || 'No text available.';
+    }
+
+    if (url) {
+      this.playResponseVideo(url);
+    }
+  }
+}
+
+  // Play audio directly
   playAudio(url?: string) {
     if (!url) return;
     try {
       const video = this.safeVideo();
-      // If a non-idle video is currently playing, pause it before starting audio
       if (video && this.currentVideoType !== 'blink' && !video.paused) {
         video.pause();
         this.isVideoPlaying = false;
@@ -462,7 +597,6 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // helper used by template to play video for a chat item
   playVideoFromChat(url?: string) {
     if (!url) return;
     this.playResponseVideo(url);
@@ -479,7 +613,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
       if (response.audio_url) {
         html += `
-        <span class="media-icon" 
+        <span class="media-icon"
               onclick="window.dispatchEvent(new CustomEvent('playAudio', { detail: '${response.audio_url}' }))">
           🎧
         </span>`;
@@ -502,9 +636,10 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   formatErrorMessage(response: SearchResponse): string {
     let message = response.message || "I couldn't find an exact match.";
 
-    if (response.sample_questions?.length) {
+    const sampleQuestions = (response as any)?.sample_questions as string[] | undefined;
+    if (sampleQuestions?.length) {
       message += '<br><br><strong>Try asking:</strong><ul>';
-      response.sample_questions.forEach(q => message += `<li>${q}</li>`);
+      sampleQuestions.forEach(q => message += `<li>${q}</li>`);
       message += '</ul>';
     }
 
@@ -512,14 +647,14 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   }
 
   // Build pairs: each pair is { user?: ChatMessage, bot?: ChatMessage }
-  get pairedMessages(): Array<{ user?: ChatMessage, bot?: ChatMessage }> {
-    const pairs: Array<{ user?: ChatMessage, bot?: ChatMessage }> = [];
+  get pairedMessages(): Array<{ user?: ChatMessage, bot?: any }> {
+    const pairs: Array<{ user?: ChatMessage, bot?: any }> = [];
     const msgs = this.messages || [];
     let i = 0;
     while (i < msgs.length) {
       const current = msgs[i];
       if (current.sender === 'user') {
-        const pair: { user?: ChatMessage, bot?: ChatMessage } = { user: current };
+        const pair: { user?: ChatMessage, bot?: any } = { user: current };
         const next = msgs[i + 1];
         if (next && next.sender === 'bot') {
           pair.bot = next;
@@ -529,11 +664,9 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
         }
         pairs.push(pair);
       } else if (current.sender === 'bot') {
-        // bot message without preceding user (welcome message, errors, etc.)
         pairs.push({ bot: current });
         i += 1;
       } else {
-        // fallback: add as single
         pairs.push({ bot: current });
         i += 1;
       }
@@ -569,7 +702,6 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
         container.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
         this.currentPairIndex = index;
       } catch (e) {
-        // fallback: scroll to bottom/top
         try {
           const container = this.chatContainer.nativeElement as HTMLElement;
           if (index === 0) container.scrollTop = 0;
@@ -593,7 +725,6 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       try {
         const el = this.chatContainer.nativeElement as HTMLElement;
-        // Use smooth scroll if supported, otherwise fall back to direct assignment
         if (typeof el.scrollTo === 'function') {
           el.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
@@ -610,19 +741,24 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     this.hasChatStarted = false;
     this.lastResponseVideoUrl = null;
 
+    // ✅ reset followups + suggestions
+    this.followupQuestions = [];
+    this.suggestedQuestions = [];
+    this.showSuggestions = false;
+
     this.ngOnInit();
     this.playBlinkVideo();
   }
 
+  /* ================= MIC / SPEECH (UNCHANGED) ================= */
 
   private pickMimeType(): string {
     const w: any = window;
 
-    // Try in order. Different browsers support different types.
     const types = [
-      'audio/webm;codecs=opus', // Chrome/Edge/Firefox (best)
+      'audio/webm;codecs=opus',
       'audio/webm',
-      'audio/mp4',              // Safari (sometimes)
+      'audio/mp4',
       'audio/m4a',
     ];
 
@@ -638,10 +774,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
+        audio: { echoCancellation: true, noiseSuppression: true },
       });
 
       const mimeType = this.pickMimeType();
@@ -682,13 +815,11 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
     this.uploadInProgress = true;
 
-    // We need the blob only after "stop" finishes
     this.recorder.onstop = async () => {
       try {
         const mime = this.recorder?.mimeType || 'audio/webm';
         const blob = new Blob(this.chunks, { type: mime });
 
-        // 🔄 Show loading state in input
         this.zone.run(() => {
           this.isSpeechProcessing = true;
           this.showActions = false;
@@ -724,7 +855,6 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     try {
       this.recorder.stop();
     } catch {
-      // If stop fails, still cleanup
       this.uploadInProgress = false;
       this.cleanupRecorder();
     }
@@ -734,9 +864,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   reject() {
     if (this.uploadInProgress) return;
 
-    try {
-      this.recorder?.stop();
-    } catch { }
+    try { this.recorder?.stop(); } catch { }
 
     this.zone.run(() => {
       this.handleTranscriptionRejected();
@@ -749,18 +877,12 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
 
   apiBaseSrc = environment.apiBaseUrl.replace(/\/+$/, '');
   private async sendToBackendForTranscription(blob: Blob): Promise<string> {
-    // Change this URL if your backend route is different
-    //const url = 'http://localhost:5000/api/transcribe';
-    const url = `${this.apiBaseSrc}/staticchat/transcribe`;
+    const url = `${this.apiBaseSrc}/chat_llm/transcribe`;
 
     const form = new FormData();
-    // Keep extension generic; backend can read mimetype
     form.append('file', blob, 'speech.webm');
 
-    const res = await fetch(url, {
-      method: 'POST',
-      body: form,
-    });
+    const res = await fetch(url, { method: 'POST', body: form });
 
     if (!res.ok) {
       const msg = await res.text().catch(() => '');
@@ -768,26 +890,20 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     }
 
     const data = await res.json();
-    // Expect { text: "..." }
     return (data?.text || '').toString();
   }
 
   private cleanupRecorder() {
-    try {
-      this.recorder?.removeEventListener?.('dataavailable', () => { });
-    } catch { }
+    try { this.recorder?.removeEventListener?.('dataavailable', () => { }); } catch { }
 
     this.recorder = null;
     this.chunks = [];
 
     if (this.mediaStream) {
-      try {
-        this.mediaStream.getTracks().forEach((t) => t.stop());
-      } catch { }
+      try { this.mediaStream.getTracks().forEach((t) => t.stop()); } catch { }
       this.mediaStream = null;
     }
   }
-
 
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: Event) {
@@ -797,29 +913,21 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /* ========== Internal handlers (replace Outputs) ========== */
+  /* ========== Internal handlers ========== */
 
   private handleTranscriptionAccepted(text: string) {
     try {
-      // Put recognized text into input field ONLY
       this.chatForm.get('message')?.setValue(text);
-
-      // Keep cursor at end (optional but good UX)
       setTimeout(() => {
         this.messageInput?.nativeElement.focus();
       }, 0);
-
     } catch (e) {
       console.error('handleTranscriptionAccepted error', e);
     }
   }
 
-
   private handleTranscriptionRejected() {
-    // Clear input and keep UI consistent
-    try {
-      this.chatForm.get('message')?.setValue('');
-    } catch (e) {
+    try { this.chatForm.get('message')?.setValue(''); } catch (e) {
       console.error('handleTranscriptionRejected error', e);
     }
   }
@@ -840,6 +948,4 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       console.error('handleTranscriptionError error', e);
     }
   }
-
-
 }

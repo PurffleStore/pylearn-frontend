@@ -1,6 +1,7 @@
 
 
 <div class="staticchat-container">
+  <img routerLink="/" src="assets/staticchat/back.png" class="back-btn"/>
   <div class="nav-bar">MJ-CHAT</div>
   <div class="chat-container">
     <div class="chat-window">
@@ -22,32 +23,95 @@
           </div>
 
           <!-- If bot exists in pair (now shown below user) -->
+          <!-- If bot exists in pair -->
           <div *ngIf="pair.bot" class="message-row bot-row">
             <img src="assets/staticchat/teacher.png" class="avatar" />
+
             <div class="message-bubble bot-message">
-              <span style="font-size:1.5vw;" *ngIf="pair.bot.text&&!showExtraText">{{ pair.bot.text }}</span>
-              <span style="font-size:1.5vw;" *ngIf="showExtraText">{{ showExtraTextRaw }}</span>
-              <div class="mediaRow" *ngIf="pair.bot.rawData && (pair.bot.rawData?.audio_url || pair.bot.rawData?.video_url)">
-                <button class="chip" *ngIf="pair.bot.rawData?.audio_url" (click)="playAudio(pair.bot.rawData?.audio_url)">
+
+              <!-- Default Bot Text -->
+              <span style="font-size:1.5vw;"
+                    *ngIf="!pair.bot.rawData?._activeText">
+                {{ pair.bot.text }}
+              </span>
+
+              <!-- Detail / Story / Example Text -->
+              <span style=""
+                    *ngIf="pair.bot.rawData?._activeText">
+                {{ pair.bot.rawData._activeText }}
+              </span>
+
+              <!-- Media Buttons -->
+              <div class="mediaRow"
+                   *ngIf="pair.bot.rawData &&
+                (pair.bot.rawData?.audio_url ||
+                 pair.bot.rawData?.video_url ||
+                 pair.bot.rawData?.detail_url ||
+                 pair.bot.rawData?.story_url ||
+                 pair.bot.rawData?.example_url)">
+
+                <!-- Audio -->
+                <button class="chip"
+                        *ngIf="pair.bot.rawData?.audio_url"
+                        (click)="playAudio(pair.bot.rawData?.audio_url)">
                   🔊 Audio
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.video_url" (click)="playResponseVideo(pair.bot.rawData?.video_url,false, pair.bot.rawData?.answer)">
+
+                <!-- Main Video -->
+                <button class="chip"
+                        *ngIf="pair.bot.rawData?.video_url"
+                        (click)="playResponseVideo(
+                pair.bot.rawData?.video_url,
+                false,
+                pair.bot.rawData?.answer,
+                pair.bot.rawData
+              )">
                   🎬 Video
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.detail_url" (click)="playResponseVideo(pair.bot.rawData?.detail_url, true, pair.bot.rawData?.detail_text)">
+
+                <!-- Detail -->
+                <button class="chip"
+                        *ngIf="pair.bot.rawData?.detail_url"
+                        (click)="playResponseVideo(
+                pair.bot.rawData?.detail_url,
+                true,
+                pair.bot.rawData?.detail_text,
+                pair.bot.rawData
+              )">
                   💡 Detail
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.story_url" (click)="playResponseVideo(pair.bot.rawData?.story_url,true, pair.bot.rawData?.story_text)">
+
+                <!-- Story -->
+                <button class="chip"
+                        *ngIf="pair.bot.rawData?.story_url"
+                        (click)="playResponseVideo(
+                pair.bot.rawData?.story_url,
+                true,
+                pair.bot.rawData?.story_text,
+                pair.bot.rawData
+              )">
                   📖 Story
                 </button>
-                <button class="chip" *ngIf="pair.bot.rawData?.example_url" (click)="playResponseVideo(pair.bot.rawData?.example_url,true, pair.bot.rawData?.example_text)">
+
+                <!-- Example -->
+                <button class="chip"
+                        *ngIf="pair.bot.rawData?.example_url"
+                        (click)="playResponseVideo(
+                pair.bot.rawData?.example_url,
+                true,
+                pair.bot.rawData?.example_text,
+                pair.bot.rawData
+              )">
                   🧪 Example
                 </button>
+
               </div>
 
+              <!-- Time -->
               <div class="message-time">
                 {{ pair.bot.timestamp | date:'shortTime' }}
               </div>
+
             </div>
           </div>
 

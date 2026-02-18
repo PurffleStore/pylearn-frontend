@@ -507,6 +507,27 @@
     opacity: 0.2;
   }
 }
+.chip.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #45a049;
+}
+
+.media-indicator {
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 5px;
+  text-align: right;
+  font-style: italic;
+}
+
+.mediaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0;
+}
+
 .back-btn{ 
  width: 6vw;
  top: 2.2vw; 
