@@ -21,7 +21,7 @@ import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
 import { ChatLLMComponent } from './chatllm/chatllm.component';
-
+import { FitTextDirective } from './chatllm/fit-text.directive';
 
 @NgModule({
   declarations: [
@@ -29,7 +29,8 @@ import { ChatLLMComponent } from './chatllm/chatllm.component';
     HomeComponent,
     PronunciationComponent,
     StaticChatComponent,
-    ChatLLMComponent
+    ChatLLMComponent,
+    FitTextDirective
   ],
   imports: [
     BrowserModule,
