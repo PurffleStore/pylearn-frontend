@@ -37,7 +37,7 @@
             <div class="message-bubble bot-message">
               <!-- Normal bot text OR typing dots -->
 <ng-container *ngIf="!pair.bot._isTyping; else typingTpl">
-  <span fitText [fitTextMaxVw]="1.5" [fitTextMinPx]="12">{{ pair.bot.text }}</span>
+  <span fitText [fitTextMaxVw]="1.5" [fitTextMinPx]="12" [innerHTML]="pair.bot.text"></span>
 </ng-container>
 
 <ng-template #typingTpl>
