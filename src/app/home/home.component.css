@@ -496,3 +496,11 @@ h1 {
     background: #e6f2ff;
     color: #137ec4;
   }
+
+.disabled-link {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
