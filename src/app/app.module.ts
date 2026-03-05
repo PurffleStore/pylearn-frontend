@@ -22,6 +22,7 @@ import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
 import { ChatLLMComponent } from './chatllm/chatllm.component';
 import { FitTextDirective } from './chatllm/fit-text.directive';
+import { SwedishchatComponent } from './swedishchat/swedishchat.component';
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import { FitTextDirective } from './chatllm/fit-text.directive';
     PronunciationComponent,
     StaticChatComponent,
     ChatLLMComponent,
-    FitTextDirective
+    FitTextDirective,
+    SwedishchatComponent
   ],
   imports: [
     BrowserModule,

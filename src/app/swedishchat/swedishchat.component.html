@@ -1,0 +1,124 @@
+<!-- swedish-chat.component.html -->
+<div class="staticchat-container">
+  <img routerLink="/" src="assets/staticchat/home.png" class="back-btn" />
+
+  <div class="nav-bar">
+    Swedish - Chat
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-window">
+
+      <!-- ── Messages Area ── -->
+      <div class="messages-area" #chatWindow>
+
+        <div *ngFor="let msg of messages; trackBy: trackByIndex"
+             class="message-row"
+             [class.user-row]="msg.role === 'user'"
+             [class.bot-row]="msg.role === 'bot'"
+             [class.error-row]="msg.role === 'error'">
+
+          <!-- Bot / Error Avatar -->
+          <div class="avatar" *ngIf="msg.role !== 'user'">
+            <img src="assets/staticchat/bot-avatar.png"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                 alt="bot" />
+            <span class="avatar-fallback">🤖</span>
+          </div>
+
+          <!-- Bubble -->
+          <div class="bubble-wrapper">
+            <div class="bubble"
+                 [class.user-bubble]="msg.role === 'user'"
+                 [class.bot-bubble]="msg.role === 'bot'"
+                 [class.error-bubble]="msg.role === 'error'">
+              <div class="msg-text">{{ msg.text }}</div>
+
+              <!-- Tavily results (only for bot messages that contain results) -->
+              <div class="results" *ngIf="msg.role === 'bot' && msg.results?.length">
+                <div class="results-title">Search results</div>
+
+                <div class="result-card" *ngFor="let r of msg.results">
+                  <div class="result-title">{{ r.title }}</div>
+                  <div class="result-snippet">{{ r.snippet }}</div>
+                  <a class="result-url"
+                     [href]="r.url"
+                     target="_blank"
+                     rel="noopener noreferrer">
+                    Open source
+                  </a>
+                </div>
+              </div>
+
+              <div class="msg-footer">
+                <span class="msg-time">{{ msg.time }}</span>
+                <!--<span class="msg-mode" *ngIf="msg.mode">({{ msg.mode }})</span>-->
+                <!--<button *ngIf="msg.role !== 'user'"
+          class="tts-btn"
+          (click)="playTTS(msg)"
+          [disabled]="isTtsLoading"
+          title="Lyssna">
+    <span *ngIf="!isTtsLoading">🔊</span>
+    <span *ngIf="isTtsLoading">⏳</span>
+  </button>-->
+                <button *ngIf="msg.role !== 'user'"
+                        class="tts-btn"
+                        (click)="playTTS(msg)"
+                        [disabled]="msg.ttsLoading"
+                        title="Lyssna">
+                  <span *ngIf="!msg.ttsLoading">🔊</span>
+                  <span *ngIf="msg.ttsLoading">⏳</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Avatar -->
+          <div class="avatar" *ngIf="msg.role === 'user'">
+            <span class="avatar-fallback user-icon">👤</span>
+          </div>
+
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="message-row bot-row" *ngIf="isLoading">
+          <div class="avatar"><span class="avatar-fallback">🤖</span></div>
+          <div class="bubble bot-bubble typing-bubble">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+
+      </div>
+      <!-- END messages-area -->
+      <!-- ── Input Area ── -->
+      <div class="input-area">
+        <button class="clear-btn" (click)="clearChat()" title="Clear chat">🗑</button>
+
+        <textarea class="chat-input"
+                  [(ngModel)]="userInput"
+                  (keydown)="onKeyDown($event)"
+                  placeholder="Skriv ditt meddelande på svenska..."
+                  rows="1"
+                  [disabled]="isLoading">
+        </textarea>
+
+        <button class="send-btn"
+                (click)="sendMessage()"
+                [disabled]="!userInput.trim() || isLoading">
+          <svg *ngIf="!isLoading" xmlns="http://www.w3.org/2000/svg"
+               width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span *ngIf="isLoading" class="spin">⏳</span>
+        </button>
+      </div>
+      <!-- END input-area -->
+
+    </div>
+  </div>
+</div>

@@ -6,6 +6,7 @@ import { SignInComponent } from './sign-in/sign-in.component';
 import { authGuard } from './core/guards/auth.guard';
 import { StaticChatComponent } from './staticchat/staticchat.component';
 import { ChatLLMComponent } from './chatllm/chatllm.component';
+import { SwedishchatComponent } from './swedishchat/swedishchat.component';
 
 /**
  * Application routing configuration
@@ -50,6 +51,11 @@ export const routes: Routes = [
     component: ChatLLMComponent,
     data: { title: 'Chatllm' }
 
+  },
+  {
+    path: 'swedishchat',
+    component: SwedishchatComponent,
+    data: { title: 'SwedishChat' }
   },
 
   // Fallback route
