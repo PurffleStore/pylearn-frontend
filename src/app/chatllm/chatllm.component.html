@@ -3,25 +3,24 @@
 <div class="staticchat-container">
   <img routerLink="/" src="assets/staticchat/home.png" class="back-btn" />
 
-  <div class="nav-bar"> Speech Tutor</div>
+  <div class="nav-bar">Speech Tutor</div>
 
   <div class="chat-container">
     <div class="chat-window">
+
       <!-- Prev -->
-      <img
-        src="assets/staticchat/up.png"
-        class="arrow-btn up"
-        title="Prev message"
-        (click)="showPreviousPair()"
-      />
+      <img src="assets/staticchat/up.png"
+           class="arrow-btn up"
+           title="Prev message"
+           (click)="showPreviousPair()" />
 
       <!-- MESSAGES -->
       <div class="chat-messages" #chatContainer>
-        <div
-          *ngFor="let pair of pairedMessagesList; let i = index; trackBy: trackByPair"
-          class="pair"
-          [attr.data-index]="i"
-        >
+
+        <div *ngFor="let pair of pairedMessagesList; let i = index; trackBy: trackByPair"
+             class="pair"
+             [attr.data-index]="i">
+
           <!-- User (top) -->
           <div *ngIf="pair.user" class="message-row user-row">
             <div class="message-bubble user-message">
@@ -34,168 +33,177 @@
           <!-- Bot (bottom) -->
           <div *ngIf="pair.bot" class="message-row bot-row">
             <img src="assets/staticchat/teacher.png" class="avatar" />
+
             <div class="message-bubble bot-message">
-              <!-- Normal bot text OR typing dots -->
-<ng-container *ngIf="!pair.bot._isTyping; else typingTpl">
-  <span fitText [fitTextMaxVw]="1.5" [fitTextMinPx]="12" [innerHTML]="pair.bot.text"></span>
-</ng-container>
 
-<ng-template #typingTpl>
-  <div class="typing-inline">
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-  </div>
-</ng-template>
+              <!-- Typing dots OR answer text -->
+              <ng-container *ngIf="!pair.bot._isTyping; else typingTpl">
 
-              <!-- Media buttons (ONE BUTTON PER TYPE, plays arrays one-by-one automatically) -->
-              <div
-                class="mediaRow"
-                *ngIf="pair.bot.rawData &&
-                  (pair.bot.rawData?.audio_urls?.length > 0 ||
-                   pair.bot.rawData?.video_urls?.length > 0 ||
-                   pair.bot.rawData?.detail_urls?.length > 0 ||
-                   pair.bot.rawData?.story_urls?.length > 0 ||
-                   pair.bot.rawData?.example_urls?.length > 0 ||
-                   pair.bot.rawData?.audio_url ||
-                   pair.bot.rawData?.video_url ||
-                   pair.bot.rawData?.detail_url ||
-                   pair.bot.rawData?.story_url ||
-                   pair.bot.rawData?.example_url)"
-              >
-                <!-- ONE AUDIO -->
-                <button
-                  type="button"
-                  class="chip audio-btn"
-                  *ngIf="pair.bot.rawData?.audio_urls?.length > 0 || pair.bot.rawData?.audio_url"
-                  (click)="startPlaylist(pair.bot, 'audio')"
-                >
+                <!--
+                  ✅ fitText is placed here on the .answer-text span.
+                     The directive walks up to find:
+                       • .bot-message  → bubble bottom edge (usedHeight)
+                       • .pair         → panel height (ceiling)
+                     It shrinks font-size until the bubble fits inside
+                     the panel, so NO text is ever clipped.
+
+                  ✅ [innerHTML] with _safeHtml preserves data-start /
+                     data-end attributes for word-highlight sync.
+                -->
+                <span *ngIf="pair.bot._safeHtml; else plainTextTpl"
+                      class="answer-text"
+                      fitText
+                      [fitTextMaxVw]="1.5"
+                      [fitTextMinPx]="11"
+                      [fitTextStepPx]="0.4"
+                      [fitTextBottomPad]="130"
+                      [innerHTML]="pair.bot._safeHtml">
+                </span>
+
+                <ng-template #plainTextTpl>
+                  <!--
+                    Plain welcome message — also gets fitText so the
+                    first bot message respects the panel height.
+                  -->
+                  <span class="answer-text"
+                        fitText
+                        [fitTextMaxVw]="1.5"
+                        [fitTextMinPx]="11"
+                        [fitTextStepPx]="0.4"
+                        [fitTextBottomPad]="130">
+                    {{ pair.bot.text }}
+                  </span>
+                </ng-template>
+
+              </ng-container>
+
+              <ng-template #typingTpl>
+                <div class="typing-inline">
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+              </ng-template>
+
+              <!-- Media chip buttons -->
+              <div class="mediaRow"
+                   *ngIf="pair.bot.rawData &&
+                   (pair.bot.rawData?.audio_urls?.length>
+                0 ||
+                pair.bot.rawData?.video_urls?.length > 0 ||
+                pair.bot.rawData?.detail_urls?.length > 0 ||
+                pair.bot.rawData?.story_urls?.length > 0 ||
+                pair.bot.rawData?.example_urls?.length > 0 ||
+                pair.bot.rawData?.audio_url ||
+                pair.bot.rawData?.video_url ||
+                pair.bot.rawData?.detail_url ||
+                pair.bot.rawData?.story_url ||
+                pair.bot.rawData?.example_url)">
+
+                <button type="button" class="chip"
+                        *ngIf="pair.bot.rawData?.audio_urls?.length > 0 || pair.bot.rawData?.audio_url"
+                        (click)="startPlaylist(pair.bot, 'audio')">
                   🔊 Audio
                 </button>
 
-                <!-- ONE MAIN VIDEO -->
-                <button
-                  type="button"
-                  class="chip video-btn"
-                  *ngIf="pair.bot.rawData?.video_urls?.length > 0 || pair.bot.rawData?.video_url"
-                  (click)="startPlaylist(pair.bot, 'video')"
-                >
+                <button type="button" class="chip"
+                        *ngIf="pair.bot.rawData?.video_urls?.length > 0 || pair.bot.rawData?.video_url"
+                        (click)="startPlaylist(pair.bot, 'video')">
                   🎬 Video
                 </button>
 
-                <!-- ONE DETAIL -->
-                <button
-                  type="button"
-                  class="chip detail-btn"
-                  *ngIf="pair.bot.rawData?.detail_urls?.length > 0 || pair.bot.rawData?.detail_url"
-                  (click)="startPlaylist(pair.bot, 'detail')"
-                >
+                <button type="button" class="chip"
+                        *ngIf="pair.bot.rawData?.detail_urls?.length > 0 || pair.bot.rawData?.detail_url"
+                        (click)="startPlaylist(pair.bot, 'detail')">
                   💡 Detail
                 </button>
 
-                <!-- ONE STORY -->
-                <button
-                  type="button"
-                  class="chip story-btn"
-                  *ngIf="pair.bot.rawData?.story_urls?.length > 0 || pair.bot.rawData?.story_url"
-                  (click)="startPlaylist(pair.bot, 'story')"
-                >
+                <button type="button" class="chip"
+                        *ngIf="pair.bot.rawData?.story_urls?.length > 0 || pair.bot.rawData?.story_url"
+                        (click)="startPlaylist(pair.bot, 'story')">
                   📖 Story
                 </button>
 
-                <!-- ONE EXAMPLE -->
-                <button
-                  type="button"
-                  class="chip example-btn"
-                  *ngIf="pair.bot.rawData?.example_urls?.length > 0 || pair.bot.rawData?.example_url"
-                  (click)="startPlaylist(pair.bot, 'example')"
-                >
+                <button type="button" class="chip"
+                        *ngIf="pair.bot.rawData?.example_urls?.length > 0 || pair.bot.rawData?.example_url"
+                        (click)="startPlaylist(pair.bot, 'example')">
                   🧪 Example
                 </button>
+
               </div>
 
               <div class="message-time">{{ pair.bot.timestamp | date:'shortTime' }}</div>
             </div>
           </div>
-        </div>
 
-      
-       
+        </div>
       </div>
 
       <!-- Next -->
-      <img
-        src="assets/staticchat/down.png"
-        class="arrow-btn down"
-        title="Next message"
-        (click)="showNextPair()"
-      />
+      <img src="assets/staticchat/down.png"
+           class="arrow-btn down"
+           title="Next message"
+           (click)="showNextPair()" />
 
-      <!-- SUGGESTIONS (FIXED: mousedown) -->
-      <div *ngIf="showSuggestions && suggestedQuestions.length > 0" class="suggestions-box">
-        <div
-          *ngFor="let question of suggestedQuestions"
-          class="suggestion-item"
-          (mousedown)="selectQuestion(question); $event.preventDefault(); $event.stopPropagation();"
-        >
+      <!-- SUGGESTIONS -->
+      <div *ngIf="showSuggestions && suggestedQuestions.length > 0"
+           class="suggestions-box">
+        <div *ngFor="let question of suggestedQuestions"
+             class="suggestion-item"
+             (mousedown)="selectQuestion(question);
+                          $event.preventDefault();
+                          $event.stopPropagation();">
           {{ question }}
         </div>
       </div>
 
       <!-- INPUT BAR -->
       <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-input">
-        <input
-          type="text"
-          formControlName="message"
-          #messageInput
-          [placeholder]="isListening ? '⏺ Listening...' : 'Type your message...'"
-          (click)="onInputClick()"
-          (blur)="onInputBlur()"
-          (input)="onInputChange()"
-          [readonly]="isSpeechProcessing || isListening"
-        />
+
+        <input type="text"
+               formControlName="message"
+               #messageInput
+               [placeholder]="isListening ? '⏺ Listening...' : 'Type your message...'"
+               (click)="onInputClick()"
+               (blur)="onInputBlur()"
+               (input)="onInputChange()"
+               [readonly]="isSpeechProcessing || isListening" />
 
         <!-- Mic -->
-        <button
-          type="button"
-          class="micBtn"
-          [disabled]="!supported || isListening"
-          (click)="toggleMic()"
-        >
+        <button type="button"
+                class="micBtn"
+                [disabled]="!supported || isListening"
+                (click)="toggleMic()">
           🎤
         </button>
 
-        <!-- Accept/Reject -->
+        <!-- Accept / Reject -->
         <div class="actions" *ngIf="showActions">
-          <button
-            type="button"
-            class="reject"
-            (click)="reject(); $event.preventDefault(); $event.stopPropagation();"
-          >
+          <button type="button" class="reject"
+                  (click)="reject(); $event.preventDefault(); $event.stopPropagation();">
             ❌
           </button>
-          <button
-            type="button"
-            class="accept"
-            (click)="accept(); $event.preventDefault(); $event.stopPropagation();"
-          >
+          <button type="button" class="accept"
+                  (click)="accept(); $event.preventDefault(); $event.stopPropagation();">
             ✅
           </button>
         </div>
 
         <!-- Send -->
         <button type="submit" [disabled]="!chatForm.valid">➤</button>
+
       </form>
     </div>
 
     <!-- VIDEO WINDOW -->
     <div class="video-window">
       <video #videoPlayer autoplay muted playsinline></video>
-      <img
-        class="play-pause-btn"
-        [src]="(currentVideoType !== 'blink' && isVideoPlaying) ? 'assets/staticchat/pause.png' : 'assets/staticchat/play.png'"
-        (click)="togglePlayPause()"
-      />
+      <img class="play-pause-btn"
+           [src]="(currentVideoType !== 'blink' && isVideoPlaying)
+                    ? 'assets/staticchat/pause.png'
+                    : 'assets/staticchat/play.png'"
+           (click)="togglePlayPause()" />
     </div>
+
   </div>
 </div>

@@ -7,15 +7,18 @@ import {
   ElementRef,
   HostListener,
   AfterViewInit,
+  ChangeDetectorRef,
   Inject,
   NgZone,
   PLATFORM_ID,
+  OnDestroy,
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ChatLLMService, ChatMessage, SearchResponse, Question } from './chatllm.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../environments/environment';
 
 // Interface for media collections from backend
@@ -34,6 +37,7 @@ interface MediaCollection {
 type UiChatMessage = ChatMessage & {
   rawData?: any;
   _baseText?: string;
+  _safeHtml?: SafeHtml;
   _activeContentType?: string | null;
   _activeContentText?: string | null;
   _activeMediaIndex?: number;
@@ -48,7 +52,7 @@ type PlaylistType = 'video' | 'audio' | 'detail' | 'story' | 'example';
   templateUrl: './chatllm.component.html',
   styleUrls: ['./chatllm.component.css'],
 })
-export class ChatLLMComponent implements OnInit, AfterViewInit {
+export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
   @ViewChild('videoPlayer') videoRef!: ElementRef<HTMLVideoElement>;
@@ -58,7 +62,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   messages: UiChatMessage[] = [];
   isTyping = false;
 
-  // ✅ Cached pairs list (DO NOT use getter)
+  // Cached pairs list (DO NOT use getter — causes ExpressionChangedAfterItHasBeenChecked)
   pairedMessagesList: Array<{ user?: ChatMessage; bot?: any }> = [];
   trackByPair = (index: number) => index;
 
@@ -70,14 +74,12 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   private searchQuery = new Subject<string>();
   private followupQuestions: string[] = [];
   private isInputFocused = false;
-
-  // ✅ Only show suggestions if user opened by clicking the input
   private suggestionsOpenedByClick = false;
 
   // Pair navigation
   currentPairIndex = 0;
 
-  // 🎬 Video sources
+  // Video sources
   blinkVideoSrc = 'assets/staticchat/blink.mp4';
   introVideoSrc = 'assets/staticchat/intro.mp4';
 
@@ -88,13 +90,14 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   hasChatStarted = false;
   lastResponseVideoUrl: string | null = null;
+  private lastResponseBotMsg: UiChatMessage | null = null;
 
-  // 🔊 Audio player
+  // Audio player
   private audioPlayer: HTMLAudioElement | null = null;
 
   // Mic
   supported = false;
-  isListening = false; // recording
+  isListening = false;
   showActions = false;
 
   private isBrowser = false;
@@ -108,16 +111,26 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   apiBaseSrc = environment.apiBaseUrl.replace(/\/+$/, '');
 
-  // ✅ Generic playlist state (works for video, audio, detail, story, example)
+  // Generic playlist state
   private playlist: string[] = [];
   private playlistIndex = 0;
   private playlistOwnerMsgId?: number | null = null;
   private playlistType: PlaylistType | null = null;
-  private playlistLoop = false; // set true if you want loop
+  private playlistLoop = false;
+
+  // Word highlight
+  private highlightBotMsg: UiChatMessage | null = null;
+  private highlightSpans: HTMLElement[] = [];
+  private timeUpdateHandler: (() => void) | null = null;
+
+  // ResizeObserver-based text fitting is handled by the [fitText] directive.
+  // No per-bubble observers needed in the component.
 
   constructor(
     private fb: FormBuilder,
     private chatService: ChatLLMService,
+    private sanitizer: DomSanitizer,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: object,
     private zone: NgZone
   ) {
@@ -133,7 +146,6 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    // First bot message
     this.messages.push({
       id: 1,
       text: "Good morning! Let's begin our lesson on tenses. You can ask me any question about tenses",
@@ -149,10 +161,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     const hasMediaRecorder = typeof (window as any).MediaRecorder !== 'undefined';
     this.supported = hasGetUserMedia && hasMediaRecorder;
 
-    // Optional: load all questions (for searching while typing)
     this.loadAllQuestions();
-
-    // Load initial suggestions list (but DO NOT open dropdown unless user clicks input)
     this.loadInitialSuggestionsFromApi();
 
     requestAnimationFrame(() => this.scrollToLastPair());
@@ -160,6 +169,10 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.playBlinkVideo();
+  }
+
+  ngOnDestroy() {
+    this.removeTimeUpdateListener();
   }
 
   /* ================= PAIRS (CACHED) ================= */
@@ -191,27 +204,178 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     this.pairedMessagesList = pairs;
   }
 
-  /* ================= VIDEO HELPERS ================= */
+  /* ================= SAFE HTML HELPER ================= */
 
-  private safeVideo(): HTMLVideoElement | null {
-    try {
-      return this.videoRef.nativeElement;
-    } catch {
-      return null;
+  buildSafeHtml(html: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /* ================= WORD HIGHLIGHT ================= */
+
+  private attachHighlightListener(botMsg: UiChatMessage): void {
+    this.removeTimeUpdateHandler();
+    this.highlightBotMsg = botMsg;
+
+    const video = this.safeVideo();
+    if (!video) return;
+
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      const spans = this.collectSpansForMsg(botMsg);
+      this.highlightSpans = spans;
+
+      if (!spans.length) {
+        setTimeout(() => {
+          this.highlightSpans = this.collectSpansForMsg(botMsg);
+          if (!this.highlightSpans.length) return;
+          this.wireTimeUpdate(video);
+        }, 100);
+        return;
+      }
+
+      this.wireTimeUpdate(video);
+    }, 50);
+  }
+
+  private wireTimeUpdate(video: HTMLVideoElement): void {
+    if (this.timeUpdateHandler) return;
+
+    this.timeUpdateHandler = () => {
+      this.zone.runOutsideAngular(() => {
+        this.highlightWordsForTime(video.currentTime);
+      });
+    };
+    video.addEventListener('timeupdate', this.timeUpdateHandler);
+  }
+
+  private attachHighlightListenerForAudio(botMsg: UiChatMessage): void {
+    this.removeTimeUpdateHandler();
+    this.highlightBotMsg = botMsg;
+
+    const audio = this.audioPlayer;
+    if (!audio) return;
+
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      const spans = this.collectSpansForMsg(botMsg);
+      this.highlightSpans = spans;
+
+      if (!spans.length) {
+        setTimeout(() => {
+          this.highlightSpans = this.collectSpansForMsg(botMsg);
+          if (!this.highlightSpans.length) return;
+          this.wireAudioTimeUpdate(audio);
+        }, 100);
+        return;
+      }
+
+      this.wireAudioTimeUpdate(audio);
+    }, 50);
+  }
+
+  private wireAudioTimeUpdate(audio: HTMLAudioElement): void {
+    if (this.timeUpdateHandler) return;
+
+    this.timeUpdateHandler = () => {
+      this.zone.runOutsideAngular(() => {
+        this.highlightWordsForTime(audio.currentTime);
+      });
+    };
+    audio.addEventListener('timeupdate', this.timeUpdateHandler);
+  }
+
+  private collectSpansForMsg(botMsg: UiChatMessage): HTMLElement[] {
+    const container = this.chatContainer?.nativeElement as HTMLElement | null;
+    if (!container) return [];
+
+    const pairEls = Array.from(container.querySelectorAll<HTMLElement>('.pair'));
+    for (const pairEl of pairEls) {
+      const idx = parseInt(pairEl.getAttribute('data-index') ?? '-1', 10);
+      if (idx < 0) continue;
+      const pairData = this.pairedMessagesList[idx];
+      if (!pairData?.bot || pairData.bot.id !== botMsg.id) continue;
+
+      const answerEl = pairEl.querySelector<HTMLElement>('.answer-text');
+      if (answerEl) {
+        const spans = Array.from(answerEl.querySelectorAll<HTMLElement>('span[data-start]'));
+        if (spans.length) return spans;
+      }
+    }
+
+    // Fallback: last answer-text with timed spans
+    const allAnswerEls = Array.from(container.querySelectorAll<HTMLElement>('.answer-text'));
+    for (let i = allAnswerEls.length - 1; i >= 0; i--) {
+      const spans = Array.from(allAnswerEls[i].querySelectorAll<HTMLElement>('span[data-start]'));
+      if (spans.length) return spans;
+    }
+
+    return [];
+  }
+
+  private removeTimeUpdateHandler(): void {
+    if (this.timeUpdateHandler) {
+      const video = this.safeVideo();
+      if (video) video.removeEventListener('timeupdate', this.timeUpdateHandler);
+      if (this.audioPlayer) this.audioPlayer.removeEventListener('timeupdate', this.timeUpdateHandler);
+      this.timeUpdateHandler = null;
+    }
+    this.highlightSpans.forEach(s => s.classList.remove('word-highlight'));
+    this.highlightSpans = [];
+    this.highlightBotMsg = null;
+  }
+
+  private detachTimeUpdateOnly(): void {
+    if (this.timeUpdateHandler) {
+      const video = this.safeVideo();
+      if (video) video.removeEventListener('timeupdate', this.timeUpdateHandler);
+      if (this.audioPlayer) this.audioPlayer.removeEventListener('timeupdate', this.timeUpdateHandler);
+      this.timeUpdateHandler = null;
     }
   }
 
-  // Idle blink loop — keep playing but show PLAY icon in UI
+  private detachAudioTimeUpdateOnly(): void {
+    if (this.timeUpdateHandler && this.audioPlayer) {
+      this.audioPlayer.removeEventListener('timeupdate', this.timeUpdateHandler);
+      this.timeUpdateHandler = null;
+    }
+  }
+
+  private removeTimeUpdateListener = this.removeTimeUpdateHandler.bind(this);
+
+  private highlightWordsForTime(currentTime: number): void {
+    for (const span of this.highlightSpans) {
+      const start = parseFloat(span.getAttribute('data-start') ?? '-1');
+      const end = parseFloat(span.getAttribute('data-end') ?? '-1');
+      if (start < 0 || end < 0) continue;
+
+      if (currentTime >= start && currentTime <= end) {
+        span.classList.add('word-highlight');
+      } else {
+        span.classList.remove('word-highlight');
+      }
+    }
+  }
+
+  /* ================= VIDEO HELPERS ================= */
+
+  private safeVideo(): HTMLVideoElement | null {
+    try { return this.videoRef.nativeElement; } catch { return null; }
+  }
+
   playBlinkVideo() {
     const video = this.safeVideo();
     if (!video) return;
+
+    this.removeTimeUpdateHandler();
 
     video.onended = null;
     video.src = this.blinkVideoSrc;
     video.loop = true;
     video.muted = true;
     video.currentTime = 0;
-    video.play().catch(() => {});
+    video.play().catch(() => { });
 
     this.currentVideoType = 'blink';
     this.currentResponseVideoUrl = null;
@@ -222,20 +386,19 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     const video = this.safeVideo();
     if (!video) return;
 
-    // Pause audio if any
+    this.removeTimeUpdateHandler();
+
     if (this.audioPlayer && !this.audioPlayer.paused) {
       this.audioPlayer.pause();
     }
 
     video.onended = () => this.playBlinkVideo();
-
     video.src = this.introVideoSrc;
     video.loop = false;
     video.muted = false;
     video.currentTime = 0;
 
-    video
-      .play()
+    video.play()
       .then(() => {
         this.currentVideoType = 'intro';
         this.currentResponseVideoUrl = null;
@@ -243,7 +406,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
       })
       .catch(() => {
         video.muted = true;
-        video.play().catch(() => {});
+        video.play().catch(() => { });
         this.currentVideoType = 'intro';
         this.currentResponseVideoUrl = null;
         this.isVideoPlaying = !video.paused;
@@ -260,58 +423,52 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   ) {
     if (!url) return;
 
-    // Update bot message text
     if (botMsg) {
       botMsg._baseText = botMsg._baseText ?? botMsg.text;
       botMsg._activeMediaIndex = index;
       botMsg._mediaType = contentType;
 
-      if (isShowText) {
-        botMsg._activeContentType = contentType;
-        botMsg.text = showText || 'No text available.';
-      } else {
-        botMsg._activeContentType = 'main';
-        botMsg.text = botMsg._baseText;
+      const newText = isShowText
+        ? (showText || 'No text available.')
+        : botMsg._baseText;
+
+      if (botMsg.text !== newText || !botMsg._safeHtml) {
+        botMsg.text = newText;
+        botMsg._safeHtml = this.buildSafeHtml(newText);
+        botMsg._activeContentType = isShowText ? contentType : 'main';
       }
     }
 
     const video = this.safeVideo();
     if (!video) return;
 
-    // Stop audio if playing (so video audio is clean)
     if (this.audioPlayer && !this.audioPlayer.paused) {
       this.audioPlayer.pause();
-      try {
-        this.audioPlayer.currentTime = 0;
-      } catch {}
+      try { this.audioPlayer.currentTime = 0; } catch { }
     }
 
     video.pause();
 
     const absUrl = new URL(url, window.location.href).href;
-    if (video.src !== absUrl) {
-      video.src = url;
-    }
+    if (video.src !== absUrl) { video.src = url; }
 
     video.loop = false;
     video.muted = false;
     video.currentTime = 0;
     video.load();
 
-    // Note: playlist will overwrite onended when it needs chaining
+    if (botMsg) { this.attachHighlightListener(botMsg); }
+
     video.onended = () => this.playBlinkVideo();
 
     this.currentVideoType = 'response';
     this.currentResponseVideoUrl = url;
 
-    video
-      .play()
-      .then(() => {
-        this.isVideoPlaying = true;
-      })
+    video.play()
+      .then(() => { this.isVideoPlaying = true; })
       .catch(() => {
         video.muted = true;
-        video.play().catch(() => {});
+        video.play().catch(() => { });
         this.isVideoPlaying = !video.paused;
       });
   }
@@ -325,29 +482,61 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
         this.playIntroVideo();
         return;
       }
+
+      if (this.audioPlayer && !this.audioPlayer.paused) {
+        this.audioPlayer.pause();
+        this.detachAudioTimeUpdateOnly();
+        return;
+      }
+
+      if (
+        this.audioPlayer &&
+        this.audioPlayer.paused &&
+        this.audioPlayer.src &&
+        this.audioPlayer.currentTime > 0 &&
+        this.highlightBotMsg
+      ) {
+        this.audioPlayer.play().catch(() => { });
+        if (this.highlightBotMsg && !this.timeUpdateHandler) {
+          if (this.highlightSpans.length) {
+            this.wireAudioTimeUpdate(this.audioPlayer);
+          } else {
+            this.attachHighlightListenerForAudio(this.highlightBotMsg);
+          }
+        }
+        return;
+      }
+
       if (this.lastResponseVideoUrl) {
-        this.playResponseVideo(this.lastResponseVideoUrl);
+        this.playResponseVideo(
+          this.lastResponseVideoUrl,
+          false,
+          undefined,
+          this.lastResponseBotMsg ?? undefined
+        );
       }
       return;
     }
 
     if (video.paused) {
-      if (this.audioPlayer && !this.audioPlayer.paused) {
-        this.audioPlayer.pause();
-        try {
-          this.audioPlayer.currentTime = 0;
-        } catch {}
-      }
-
-      video.play().catch(() => {});
+      video.play().catch(() => { });
       this.isVideoPlaying = true;
+
+      if (this.highlightBotMsg && !this.timeUpdateHandler) {
+        if (this.highlightSpans.length) {
+          this.wireTimeUpdate(video);
+        } else {
+          this.attachHighlightListener(this.highlightBotMsg);
+        }
+      }
     } else {
       video.pause();
       this.isVideoPlaying = false;
+      this.detachTimeUpdateOnly();
     }
   }
 
-  /* ================= PLAYLIST (ONE-BUTTON PER TYPE) ================= */
+  /* ================= PLAYLIST ================= */
 
   private uniq(list: any[]): string[] {
     return Array.from(new Set((list || []).filter(Boolean).map((x) => String(x))));
@@ -359,28 +548,29 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     if (type === 'video') {
       return this.uniq(rd.video_urls?.length ? rd.video_urls : (rd.video_url ? [rd.video_url] : []));
     }
-
     if (type === 'audio') {
       return this.uniq(rd.audio_urls?.length ? rd.audio_urls : (rd.audio_url ? [rd.audio_url] : []));
     }
 
     const key = `${type}_urls`;
     const singleKey = `${type}_url`;
-
     const arr = Array.isArray(rd[key]) ? rd[key] : [];
     const single = rd[singleKey] ? [rd[singleKey]] : [];
 
     return this.uniq(arr.length ? arr : single);
   }
 
-  private getTextForIndex(botMsg: UiChatMessage, type: 'detail' | 'story' | 'example', idx: number): string {
+  private getTextForIndex(
+    botMsg: UiChatMessage,
+    type: 'detail' | 'story' | 'example',
+    idx: number
+  ): string {
     const rd = botMsg?.rawData || {};
     const textsKey = `${type}_texts`;
     const textKey = `${type}_text`;
 
     if (Array.isArray(rd[textsKey]) && rd[textsKey][idx]) return String(rd[textsKey][idx]);
     if (rd[textKey]) return String(rd[textKey]);
-
     return `${type} ${idx + 1}`;
   }
 
@@ -394,7 +584,6 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   startPlaylist(botMsg: UiChatMessage, type: PlaylistType) {
     if (!botMsg) return;
 
-    // stop any previous playlist
     this.stopCurrentPlaylist();
 
     const items = this.buildPlaylistFromBot(botMsg, type);
@@ -431,7 +620,6 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   private playPlaylistItem(botMsg: UiChatMessage) {
     if (!this.playlist.length || !this.playlistType) return;
 
-    // If user started another playlist/message, stop chaining
     if (this.playlistOwnerMsgId !== botMsg.id) {
       this.stopCurrentPlaylist();
       return;
@@ -439,10 +627,11 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
     const idx = Math.max(0, Math.min(this.playlistIndex, this.playlist.length - 1));
     const url = this.playlist[idx];
+    const type = this.playlistType;
 
-    // ✅ AUDIO playlist
-    if (this.playlistType === 'audio') {
+    if (type === 'audio') {
       this.playAudio(url);
+      this.lastResponseBotMsg = botMsg;
 
       if (this.audioPlayer) {
         this.audioPlayer.onended = () => {
@@ -450,11 +639,10 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
           this.playNextInPlaylist(botMsg);
         };
       }
+
+      this.attachHighlightListenerForAudio(botMsg);
       return;
     }
-
-    // ✅ VIDEO playlist (video/detail/story/example)
-    const type = this.playlistType;
 
     const showText = (type === 'detail' || type === 'story' || type === 'example');
     const contentText = showText
@@ -462,6 +650,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
       : (botMsg?._baseText || botMsg.text);
 
     this.lastResponseVideoUrl = url;
+    this.lastResponseBotMsg = botMsg;
 
     this.playResponseVideo(
       url,
@@ -510,10 +699,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
           this.allQuestions = [];
         }
       },
-      error: (error) => {
-        console.error('Error loading questions:', error);
-        this.allQuestions = [];
-      },
+      error: () => { this.allQuestions = []; },
     });
   }
 
@@ -566,22 +752,21 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   private searchQuestions(query: string) {
     if (!this.allQuestions || this.allQuestions.length === 0) {
-      this.showSuggestions = this.suggestionsOpenedByClick && this.suggestedQuestions.length > 0;
+      this.showSuggestions =
+        this.suggestionsOpenedByClick && this.suggestedQuestions.length > 0;
       return;
     }
 
     const q = (query || '').trim().toLowerCase();
-    if (!q) {
-      this.showQuestionSuggestions(true);
-      return;
-    }
+    if (!q) { this.showQuestionSuggestions(true); return; }
 
     const filtered = this.allQuestions
       .filter((x) => (x.question || '').toLowerCase().includes(q))
       .slice(0, 5);
 
     this.suggestedQuestions = filtered.map((x) => x.question);
-    this.showSuggestions = this.suggestionsOpenedByClick && this.suggestedQuestions.length > 0;
+    this.showSuggestions =
+      this.suggestionsOpenedByClick && this.suggestedQuestions.length > 0;
   }
 
   selectQuestion(question: string) {
@@ -597,106 +782,103 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   /* ================= SEND MESSAGE ================= */
 
- sendMessage() {
-  const message = (this.chatForm.get('message')?.value || '').trim();
-  if (!message) return;
+  sendMessage() {
+    const message = (this.chatForm.get('message')?.value || '').trim();
+    if (!message) return;
 
-  // stop current playlist + audio
-  this.stopCurrentPlaylist();
-  this.stopAudio();
+    this.stopCurrentPlaylist();
+    this.stopAudio();
 
-  // Push user message
-  this.messages.push({
-    id: this.messages.length + 1,
-    text: message,
-    sender: 'user',
-    timestamp: new Date(),
-  });
+    this.messages.push({
+      id: this.messages.length + 1,
+      text: message,
+      sender: 'user',
+      timestamp: new Date(),
+    });
 
-  this.hasChatStarted = true;
-  this.chatForm.reset();
-  this.showSuggestions = false;
+    this.hasChatStarted = true;
+    this.chatForm.reset();
+    this.showSuggestions = false;
 
-  // ✅ Add typing placeholder as a BOT message (so it will be visible)
-  const typingMsg: UiChatMessage = {
-    id: this.messages.length + 1,
-    text: '',
-    sender: 'bot',
-    timestamp: new Date(),
-    _isTyping: true,
-  };
-  this.messages.push(typingMsg);
+    const typingMsg: UiChatMessage = {
+      id: this.messages.length + 1,
+      text: '',
+      sender: 'bot',
+      timestamp: new Date(),
+      _isTyping: true,
+    };
+    this.messages.push(typingMsg);
 
-  this.rebuildPairs();
-  requestAnimationFrame(() => this.scrollToLastPair());
+    this.rebuildPairs();
+    requestAnimationFrame(() => this.scrollToLastPair());
 
-  this.chatService.searchQuestion(message).subscribe({
-    next: (response: SearchResponse & Partial<MediaCollection> & any) => {
-      // ✅ Remove typing placeholder
-      this.removeTypingPlaceholder();
+    this.chatService.searchQuestion(message).subscribe({
+      next: (response: SearchResponse & Partial<MediaCollection> & any) => {
+        this.removeTypingPlaceholder();
 
-      const botText = response?.answer
-        ? String(response.answer).replace(/\n/g, ' ')
-        : String(response?.message || 'Sorry, I could not find an answer.');
+        const rawAnswer = response?.answer
+          ? String(response.answer)
+          : String(response?.message || 'Sorry, I could not find an answer.');
 
-      const botMessage: UiChatMessage = {
-        id: this.messages.length + 1,
-        text: botText,
-        sender: 'bot',
-        timestamp: new Date(),
-        rawData: response,
-        _baseText: botText,
-        _activeContentType: null,
-        _activeContentText: null,
-        _activeMediaIndex: 0,
-        _mediaType: 'main',
-      };
+        // Strip newlines for display; keep HTML for innerHTML
+        const botText = rawAnswer.replace(/\n/g, ' ');
+        const safeHtml = this.buildSafeHtml(botText);
 
-      this.messages.push(botMessage);
+        const botMessage: UiChatMessage = {
+          id: this.messages.length + 1,
+          text: botText,
+          sender: 'bot',
+          timestamp: new Date(),
+          rawData: response,
+          _baseText: botText,
+          _safeHtml: safeHtml,
+          _activeContentType: null,
+          _activeContentText: null,
+          _activeMediaIndex: 0,
+          _mediaType: 'main',
+        };
 
-      this.rebuildPairs();
-      requestAnimationFrame(() => this.scrollToLastPair());
+        this.messages.push(botMessage);
 
-      // OPTIONAL: auto-play main videos playlist
-      const hasVideos = (response?.video_urls?.length > 0) || !!response?.video_url;
-      if (hasVideos) {
-        this.startPlaylist(botMessage, 'video');
-      }
+        this.rebuildPairs();
+        requestAnimationFrame(() => this.scrollToLastPair());
 
-      // Followups
-      if (response?.followups?.length) {
-        this.followupQuestions = response.followups
-          .map((f: any) => f?.question)
-          .filter(Boolean)
-          .slice(0, 5);
+        const hasVideos = (response?.video_urls?.length > 0) || !!response?.video_url;
+        if (hasVideos) {
+          this.startPlaylist(botMessage, 'video');
+        }
 
-        this.suggestedQuestions = this.followupQuestions;
-        this.showSuggestions = false;
-      } else {
+        if (response?.followups?.length) {
+          this.followupQuestions = response.followups
+            .map((f: any) => f?.question)
+            .filter(Boolean)
+            .slice(0, 5);
+          this.suggestedQuestions = this.followupQuestions;
+          this.showSuggestions = false;
+        } else {
+          this.followupQuestions = [];
+          this.loadInitialSuggestionsFromApi();
+        }
+      },
+
+      error: () => {
+        this.removeTypingPlaceholder();
+
+        this.messages.push({
+          id: this.messages.length + 1,
+          text: 'Sorry, I encountered an error. Please try again.',
+          sender: 'bot',
+          timestamp: new Date(),
+        });
+
+        this.rebuildPairs();
+        requestAnimationFrame(() => this.scrollToLastPair());
+
         this.followupQuestions = [];
         this.loadInitialSuggestionsFromApi();
-      }
-    },
-
-    error: () => {
-      // ✅ Remove typing placeholder
-      this.removeTypingPlaceholder();
-
-      this.messages.push({
-        id: this.messages.length + 1,
-        text: 'Sorry, I encountered an error. Please try again.',
-        sender: 'bot',
-        timestamp: new Date(),
-      });
-
-      this.rebuildPairs();
-      requestAnimationFrame(() => this.scrollToLastPair());
-
-      this.followupQuestions = [];
-      this.loadInitialSuggestionsFromApi();
-    },
-  });
-}
+      },
+    });
+  }
 
   /* ================= AUDIO ================= */
 
@@ -704,7 +886,6 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     if (!url) return;
 
     try {
-      // Pause video (if not blink) so audio is clear
       const video = this.safeVideo();
       if (video && this.currentVideoType !== 'blink' && !video.paused) {
         video.pause();
@@ -719,11 +900,8 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
       this.audioPlayer.src = url;
       this.audioPlayer.currentTime = 0;
-
-      // ✅ Important: playlist will set onended when it needs chaining
       this.audioPlayer.onended = null;
-
-      this.audioPlayer.play().catch(() => {});
+      this.audioPlayer.play().catch(() => { });
     } catch (e) {
       console.error('Audio play failed', e);
     }
@@ -736,10 +914,10 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
         this.audioPlayer.currentTime = 0;
         this.audioPlayer.onended = null;
       }
-    } catch {}
+    } catch { }
   }
 
-  /* ================= SCROLL (NO JUMP) ================= */
+  /* ================= SCROLL ================= */
 
   private scrollToPair(index: number) {
     requestAnimationFrame(() => {
@@ -762,13 +940,9 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
           const tRect = target.getBoundingClientRect();
           const delta = (tRect.top - cRect.top) + container.scrollTop;
 
-          container.scrollTo({
-            top: delta,
-            behavior: 'smooth',
-          });
-
+          container.scrollTo({ top: delta, behavior: 'smooth' });
           this.currentPairIndex = idx;
-        } catch {}
+        } catch { }
       });
     });
   }
@@ -782,22 +956,19 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   showNextPair() {
     const total = this.pairedMessagesList.length;
     if (total === 0) return;
-    const next = Math.min(this.currentPairIndex + 1, total - 1);
-    this.scrollToPair(next);
+    this.scrollToPair(Math.min(this.currentPairIndex + 1, total - 1));
   }
 
   showPreviousPair() {
     const total = this.pairedMessagesList.length;
     if (total === 0) return;
-    const prev = Math.max(this.currentPairIndex - 1, 0);
-    this.scrollToPair(prev);
+    this.scrollToPair(Math.max(this.currentPairIndex - 1, 0));
   }
 
   clearChat() {
     this.messages = [];
     this.hasChatStarted = false;
     this.lastResponseVideoUrl = null;
-
     this.followupQuestions = [];
     this.suggestedQuestions = [];
     this.showSuggestions = false;
@@ -903,7 +1074,9 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
         });
       } catch (err: any) {
         this.zone.run(() => {
-          this.handleTranscriptionError(typeof err?.message === 'string' ? err.message : 'Transcription failed.');
+          this.handleTranscriptionError(
+            typeof err?.message === 'string' ? err.message : 'Transcription failed.'
+          );
           this.showActions = false;
           this.isListening = false;
         });
@@ -913,9 +1086,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
       }
     };
 
-    try {
-      this.recorder.stop();
-    } catch {
+    try { this.recorder.stop(); } catch {
       this.uploadInProgress = false;
       this.cleanupRecorder();
     }
@@ -924,9 +1095,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   reject() {
     if (this.uploadInProgress) return;
 
-    try {
-      this.recorder?.stop();
-    } catch {}
+    try { this.recorder?.stop(); } catch { }
 
     this.zone.run(() => {
       this.handleTranscriptionRejected();
@@ -939,7 +1108,6 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
   private async sendToBackendForTranscription(blob: Blob): Promise<string> {
     const url = `${this.apiBaseSrc}/chat_llm/transcribe`;
-
     const form = new FormData();
     form.append('file', blob, 'speech.webm');
 
@@ -959,9 +1127,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
     this.chunks = [];
 
     if (this.mediaStream) {
-      try {
-        this.mediaStream.getTracks().forEach((t) => t.stop());
-      } catch {}
+      try { this.mediaStream.getTracks().forEach((t) => t.stop()); } catch { }
       this.mediaStream = null;
     }
   }
@@ -980,20 +1146,13 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
   private handleTranscriptionAccepted(text: string) {
     try {
       this.chatForm.get('message')?.setValue(text);
-      setTimeout(() => {
-        this.messageInput?.nativeElement.focus();
-      }, 0);
-    } catch (e) {
-      console.error('handleTranscriptionAccepted error', e);
-    }
+      setTimeout(() => { this.messageInput?.nativeElement.focus(); }, 0);
+    } catch (e) { console.error('handleTranscriptionAccepted error', e); }
   }
 
   private handleTranscriptionRejected() {
-    try {
-      this.chatForm.get('message')?.setValue('');
-    } catch (e) {
-      console.error('handleTranscriptionRejected error', e);
-    }
+    try { this.chatForm.get('message')?.setValue(''); }
+    catch (e) { console.error('handleTranscriptionRejected error', e); }
   }
 
   private handleTranscriptionError(msg: string) {
@@ -1010,16 +1169,12 @@ export class ChatLLMComponent implements OnInit, AfterViewInit {
 
       this.rebuildPairs();
       requestAnimationFrame(() => this.scrollToLastPair());
-    } catch (e) {
-      console.error('handleTranscriptionError error', e);
-    }
+    } catch (e) { console.error('handleTranscriptionError error', e); }
   }
 
   private removeTypingPlaceholder(): void {
-  const idx = this.messages.findIndex((m: any) => m?._isTyping === true);
-  if (idx !== -1) {
-    this.messages.splice(idx, 1);
+    const idx = this.messages.findIndex((m: any) => m?._isTyping === true);
+    if (idx !== -1) { this.messages.splice(idx, 1); }
+    this.rebuildPairs();
   }
-  this.rebuildPairs();
-}
 }

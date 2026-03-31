@@ -1,6 +1,6 @@
 /* chatllm.component.css */
 
-/* ===== GLOBAL FONT FOR ENTIRE CHAT ===== */
+/* ===== GLOBAL FONT ===== */
 .chat-container,
 .chat-container * {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif !important;
@@ -45,58 +45,54 @@
 }
 
 /* ===== MESSAGES AREA ===== */
-
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 7vw;
-
-  /* ✅ Keep snap, but do not fight JS scrolling */
   scroll-snap-type: y proximity;
-
-  /* ✅ Important for smooth container scroll */
   scroll-behavior: smooth;
-
-  /* ✅ Prevent browser anchor jumps */
   overflow-anchor: none;
-
   -webkit-overflow-scrolling: touch;
 }
 
-/* Scrollbar */
-.chat-messages::-webkit-scrollbar {
-  width: 6px;
-}
-.chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.3);
-  border-radius: 10px;
-}
+  .chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 10px;
+  }
 
 /* ===== EACH USER+BOT "PAIR" ===== */
+/*
+  KEY DESIGN:
+  Each .pair fills exactly one viewport panel (min-height: 100% of the
+  scroll container).  The bot bubble lives inside it and can be as tall
+  as needed — the pair scrolls if the bubble grows beyond the panel.
+*/
 .pair {
   scroll-snap-align: start;
-
-  /* ✅ stop snap jumping when JS scrolls */
   scroll-snap-stop: normal;
-
   min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 4.5rem 1rem;
+  padding: 4.5rem 1rem 2rem 1rem;
   box-sizing: border-box;
   gap: 2vw;
 }
-.pair + .pair {
-  margin-top: 8px;
-}
+
+  .pair + .pair {
+    margin-top: 8px;
+  }
 
 /* ===== MESSAGE ROW ===== */
 .message-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start; /* align-items: flex-start so long bubbles grow down */
   gap: 10px;
 }
 
@@ -115,22 +111,28 @@
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  margin-top: 4px; /* nudge down to align with first text line */
 }
 
 /* ===== MESSAGE BUBBLE ===== */
+/*
+  CRITICAL FIX:
+  • NO max-height here.  The bubble grows as tall as its content needs.
+  • The .pair already has min-height:100% so the panel scrolls if the
+    bubble is taller than the viewport — the text is NEVER clipped.
+  • The fitText directive on .answer-text shrinks the font so text
+    always FITS without scrolling inside the bubble itself.
+*/
 .message-bubble {
   max-width: 90%;
   padding: 14px 18px 8px 18px;
   border-radius: 18px;
-  font-size: clamp(14px, 1vw, 18px);
-  line-height: 1.6;
+  line-height: 1.5;
   display: flex;
   flex-direction: column;
-
-  height: auto;
-  min-height: 4.5vw;
-  max-height: 21vw;
-  overflow: hidden;
+  box-sizing: border-box;
+  /* height: auto — grows with content, NO max-height cap */
 }
 
 /* User bubble */
@@ -138,20 +140,38 @@
   background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: white;
   border-bottom-right-radius: 6px;
+  font-size: clamp(14px, 1vw, 18px);
 }
 
 /* Bot bubble */
 .bot-message {
+  width: 90%;
   background: rgba(255,255,255,0.95);
   color: #111;
   border-bottom-left-radius: 6px;
 }
 
-/* span must be block so height calculations behave */
-.bot-message.message-bubble > span {
-  display: block;
-  line-height: 1.5;
-  word-break: break-word;
+  /*
+    .answer-text is the element the [fitText] directive is placed on.
+    It MUST:
+      • be display:block so its height participates in flow
+      • have NO overflow:hidden (the bubble is the clip boundary via
+        the directive's container check — which now uses the .pair's
+        available height, not a px max-height)
+      • start at the max comfortable font size; the directive shrinks it
+  */
+  .bot-message .answer-text {
+    display: block;
+    font-size: 1.5vw; /* starting size — directive may shrink */
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+/* ===== WORD HIGHLIGHT ===== */
+:host ::ng-deep span.word-highlight {
+  background-color: #538cff78 !important;
+  border-radius: 1vw;
+  padding: 0.5vw;
 }
 
 /* ===== MESSAGE TIME ===== */
@@ -162,6 +182,7 @@
   align-self: flex-end;
   text-align: right;
   color: rgba(0,0,0,1);
+  flex-shrink: 0;
 }
 
 /* ===== TYPING INDICATOR ===== */
@@ -181,31 +202,44 @@
   animation: blink 1.2s infinite both;
 }
 
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
+  .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
 
 @keyframes blink {
-  0% { opacity: 0.2; }
-  50% { opacity: 1; }
-  100% { opacity: 0.2; }
+  0% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
 }
 
 /* ===== SUGGESTIONS (GLASS) ===== */
-.suggestions-box{
+.suggestions-box {
   margin: 0 16px 12px 16px;
   width: calc(100% - 32px);
   max-height: 260px;
   overflow-y: auto;
   border-radius: 16px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255,255,255,0.14);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
 }
 
-.suggestion-item{
+.suggestion-item {
   padding: 12px 14px;
   border-radius: 12px;
   cursor: pointer;
@@ -218,20 +252,21 @@
   transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
 }
 
-.suggestion-item:hover{
-  background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.22);
-  transform: translateY(-1px);
-}
+  .suggestion-item:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.22);
+    transform: translateY(-1px);
+  }
 
-.suggestion-item:active{
-  transform: translateY(0);
-}
+  .suggestion-item:active {
+    transform: translateY(0);
+  }
 
-.suggestions-box::-webkit-scrollbar{
+.suggestions-box::-webkit-scrollbar {
   width: 6px;
 }
-.suggestions-box::-webkit-scrollbar-thumb{
+
+.suggestions-box::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.25);
   border-radius: 10px;
 }
@@ -245,36 +280,36 @@
   border-top: 1px solid rgba(255,255,255,0.2);
 }
 
-.chat-input input {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: 25px;
-  border: none;
-  outline: none;
-  font-size: 14px;
-}
+  .chat-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 25px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+  }
 
-.chat-input button {
-  margin-left: 10px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
+  .chat-input button {
+    margin-left: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
 
-.chat-input button:hover {
-  transform: scale(1.08);
-}
+    .chat-input button:hover {
+      transform: scale(1.08);
+    }
 
-.chat-input button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+    .chat-input button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
 /* ===== VIDEO PANEL ===== */
 .video-window {
@@ -293,13 +328,13 @@
   gap: 2vw;
 }
 
-.video-window video {
-  width: 100%;
-  height: 100%;
-  flex: 1;
-  object-fit: cover;
-  background: black;
-}
+  .video-window video {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    object-fit: cover;
+    background: black;
+  }
 
 .play-pause-btn {
   position: relative;
@@ -316,15 +351,15 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
 }
 
-.play-pause-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 36px rgba(63,97,173,0.22), 0 6px 12px rgba(0,0,0,0.28);
-}
+  .play-pause-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px rgba(63,97,173,0.22), 0 6px 12px rgba(0,0,0,0.28);
+  }
 
-.play-pause-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.22);
-}
+  .play-pause-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.22);
+  }
 
 /* ===== MIC BUTTONS ===== */
 .micBtn {
@@ -340,10 +375,10 @@
   font-size: 30px !important;
 }
 
-.micBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .micBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
 .actions {
   display: inline-flex;
@@ -358,6 +393,7 @@
   flex-wrap: wrap;
   gap: 5px;
   margin: 5px 0;
+  flex-shrink: 0;
 }
 
 .chip {
@@ -373,28 +409,27 @@
   font-size: 0.9rem;
   border: none;
   border-radius: 999px;
-  box-shadow: 0 6px 20px rgba(0, 114, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 20px rgba(0,114,255,0.18), 0 2px 6px rgba(0,0,0,0.25);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   user-select: none;
 }
 
-.chip:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(0, 114, 255, 0.20), 0 4px 10px rgba(0, 0, 0, 0.28);
-}
+  .chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(0,114,255,0.20), 0 4px 10px rgba(0,0,0,0.28);
+  }
 
-.chip:active {
-  transform: translateY(0);
-  opacity: 0.98;
-}
+  .chip:active {
+    transform: translateY(0);
+    opacity: 0.98;
+  }
 
-.chip.active {
-  background-color: #4CAF50;
-  color: #fff;
-}
+  .chip.active {
+    background-color: #4CAF50;
+    color: #fff;
+  }
 
-/* Indicator under message */
 .media-indicator {
   font-size: 0.8em;
   color: #666;
@@ -420,8 +455,13 @@
   z-index: 20;
 }
 
-.up { top: 1vw; }
-.down { bottom: 5vw; }
+.up {
+  top: 1vw;
+}
+
+.down {
+  bottom: 5vw;
+}
 
 /* ===== BACK BUTTON ===== */
 .back-btn {
@@ -433,7 +473,7 @@
   z-index: 30;
 }
 
-.typing-inline{
+.typing-inline {
   display: flex;
   gap: 0.4rem;
   align-items: center;
