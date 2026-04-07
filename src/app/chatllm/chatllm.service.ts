@@ -1,104 +1,95 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+import { HttpClient } from '@angular/common/http';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
-export interface ChatMessage {
-  id?: number;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  isTyping?: boolean;
-  rawData?: any;
+// ─── INTERFACES ───
+export interface ChatResponse {
+  reply: string;
+  suggestions: string[];
+  session_id: string;
+  video_key: string;    // e.g. "greeting", "videos/present_simple_definition.mp4"
+  video_url: string;    // direct video path from backend
 }
 
-export interface Question {
-  sno: number;
-  question: string;
+export interface SuggestionsResponse {
+  suggestions: string[];
+  session_id: string;
 }
 
-export type SuggestionsResponse = {
-  suggestions: { sno: number; question: string }[];
-};
-
-export interface SearchResponse {
-  scenario?: string;
-  question?: string;
-  answer?: string;
-  matches?: any[];
-  session_id?: string;
-
-  // backend followups
-  followups?: { sno: number; question: string; score?: number }[];
-
-  // optional (keep if you use)
-  audio_url?: string;
-  video_url?: string;
-
-  message?: string;
-  error?: string;
+export interface VideoMap {
+  [key: string]: string;  // video_key → video_path
 }
 
 @Injectable({ providedIn: 'root' })
-export class ChatLLMService {
-
- private readonly apiBaseSrc = environment.apiBaseUrl.replace(/\/+$/, '');
-private readonly apiBase = `${this.apiBaseSrc}/chat_llm`;
-
-  // ✅ Backend session_id
+export class ChatService {
+  private readonly apiBaseUrl = environment.apiBaseUrl.replace(/\/+$/, '');
+  private readonly apiBase = `${this.apiBaseUrl}/chat_llm`;
+ 
   private sessionId: string;
 
+  /** Observable stream of current video key — components subscribe to this */
+  private videoSubject = new BehaviorSubject<string>('blink');
+  public video$ = this.videoSubject.asObservable();
+
+  /** Cached video map from backend */
+  public videoMap: VideoMap = {};
+
   constructor(private http: HttpClient) {
-    const stored = sessionStorage.getItem('chat_session_id');
-    if (stored) {
-      this.sessionId = stored;
-    } else {
-      this.sessionId = uuidv4();
-      sessionStorage.setItem('chat_session_id', this.sessionId);
-    }
+    this.sessionId = localStorage.getItem('speech_tutor_sid') || this.generateId();
+    localStorage.setItem('speech_tutor_sid', this.sessionId);
   }
 
-  getSessionId(): string {
-    return this.sessionId;
+  private generateId(): string {
+    return 'sid_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
   }
 
-  // ✅ GET /api/suggestions
+  /** Load all video mappings on app init */
+  loadVideoMap(): Observable<{ videos: VideoMap }> {
+    return this.http.get<{ videos: VideoMap }>(`${this.apiBase}/videos`).pipe(
+      tap(res => { this.videoMap = res.videos || {}; })
+    );
+  }
+
+  /** Send chat message — returns response with video_key */
+  sendMessage(message: string): Observable<ChatResponse> {
+    return this.http.post<ChatResponse>(`${this.apiBase}/chat`, {
+      message,
+      session_id: this.sessionId
+    }).pipe(
+      tap(res => {
+        this.sessionId = res.session_id || this.sessionId;
+        // Emit video key so the video panel reacts
+        if (res.video_key) {
+          this.videoSubject.next(res.video_key);
+        }
+      })
+    );
+  }
+
+  /** Get initial suggestions */
   getSuggestions(): Observable<SuggestionsResponse> {
-    return this.http.get<SuggestionsResponse>(`${this.apiBase}/suggestions`);
-  }
-
-  // ✅ POST /api/ask with session_id + X-Session-Id
-  searchQuestion(question: string): Observable<SearchResponse> {
-    const headers = new HttpHeaders({ 'X-Session-Id': this.sessionId });
-
-    return this.http.post<SearchResponse>(
-      `${this.apiBase}/ask`,
-      { question, session_id: this.sessionId },
-      { headers }
+    return this.http.get<SuggestionsResponse>(
+      `${this.apiBase}/suggestions?session_id=${this.sessionId}`
     );
   }
 
-  // ✅ GET /api/questions (matches your backend output)
-  getAllQuestions(): Observable<{ success: boolean; questions: Question[]; count: number }> {
-    return this.http.get<{ success: boolean; questions: Question[]; count: number }>(
-      `${this.apiBase}/questions`
-    );
+  /** Get topics list */
+  getTopics(): Observable<{ topics: { index: number; name: string; id: string }[] }> {
+    return this.http.get<any>(`${this.apiBase}/topics`);
   }
 
-  // optional: clear backend context
-  clearContext(): Observable<{ status: string; session_id: string }> {
-    const headers = new HttpHeaders({ 'X-Session-Id': this.sessionId });
-    return this.http.post<{ status: string; session_id: string }>(
-      `${this.apiBase}/clear_context`,
-      { session_id: this.sessionId },
-      { headers }
-    );
+  /** Resolve a video_key to a playable URL path */
+  resolveVideoUrl(videoKey: string): string {
+    // If the key is already a path (contains /), use it directly
+    if (videoKey.includes('/')) return videoKey;
+    // Otherwise look it up in the video map
+    return this.videoMap[videoKey] || this.videoMap['fallback'] || 'assets/staticchat/feedback/blink.mp4';
   }
 
-  // optional: reset session locally
-  resetSession(): void {
-    this.sessionId = uuidv4();
-    sessionStorage.setItem('chat_session_id', this.sessionId);
+  /** Tell the video panel to play a specific video */
+  playVideo(key: string): void {
+    this.videoSubject.next(key);
   }
 }

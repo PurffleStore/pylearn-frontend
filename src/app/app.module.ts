@@ -17,11 +17,12 @@ import { HomeComponent } from './home/home.component';
 import { HeaderComponent } from './shared/header/header.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { PronunciationComponent } from './pronunciation/pronunciation.component';
+import { LipTrainerComponent } from './lip-trainer/lip-trainer.component';
 import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
-import { ChatLLMComponent } from './chatllm/chatllm.component';
-import { FitTextDirective } from './chatllm/fit-text.directive';
+/*import { ChatLLMComponent } from './chatllm/chatllm.component';*/
+//import { FitTextDirective } from './chatllm/fit-text.directive';
 import { SwedishchatComponent } from './swedishchat/swedishchat.component';
 
 @NgModule({
@@ -29,9 +30,10 @@ import { SwedishchatComponent } from './swedishchat/swedishchat.component';
     AppComponent,
     HomeComponent,
     PronunciationComponent,
+    LipTrainerComponent,
     StaticChatComponent,
-    ChatLLMComponent,
-    FitTextDirective,
+    /*ChatLLMComponent,*/
+   /* FitTextDirective,*/
     SwedishchatComponent
   ],
   imports: [
