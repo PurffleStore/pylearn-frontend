@@ -1,0 +1,380 @@
+:host {
+  display: block;
+  font-family: Raleway, Roboto, "Helvetica Neue", sans-serif;
+}
+
+.pp-page {
+  height: 85vh;
+  padding: 28px 24px 18px;
+  box-sizing: border-box;
+  border: 7px solid #3aaea8;
+  border-radius: 1vw;
+}
+
+.pp-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.pp-header h1 {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 800;
+  color: #3aaea8;
+  letter-spacing: 0.3px;
+}
+
+.pp-main {
+  display: flex;
+  gap: 1vw;
+  align-items: start;
+  justify-content: space-around;
+}
+
+/* LEFT SECTION - Same as pronunciation component */
+.pp-left {
+  display: flex;
+  justify-content: center;
+}
+
+.word-card {
+  width: 22vw;
+  height: 34vw;
+  background: #e9f7f6;
+  border-radius: 18px;
+  padding: 22px 18px 26px;
+  text-align: center;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+  border: 3px dashed #3aaea8;
+  gap: 0.5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.word-img-wrap {
+  width: 20vw;
+  height: 20vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.word-text {
+  font-size: 3vw;
+  font-weight: 800;
+  color: #1f2b2a;
+}
+
+.phonetic-pill {
+  color: #3aaea8;
+  font-size: 1.5vw;
+  font-weight: 600;
+}
+
+/* CENTER SECTION - Modified for lip trainer */
+.pp-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+}
+
+.center-card {
+  width: 30vw;
+}
+
+.center-media {
+  width: 29vw;
+  height: 26vw;
+  background-color: #e9f7f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 1vw;
+}
+
+/* Ensure both images and videos have the same dimensions */
+.center-media > video,
+.center-media > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 1vw;
+}
+
+/* For default images, you might want contain instead of cover to see full image */
+.default-image {
+  object-fit: contain;
+  background-color: #e9f7f6;
+}
+
+/* For videos during testing - adjust as needed */
+.center-media > video {
+  object-fit: cover;
+
+}
+
+.controls-row {
+  display: flex;
+  margin-top: 1.8vw;
+  gap: 2vw;
+}
+
+.listen-img {
+  width: 4.8vw;
+  height: 4.8vw;
+  border-radius: 50%;
+  display: inline-block;
+  object-fit: contain;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.listen-img:active {
+  transform: scale(0.98);
+}
+
+.listen-img:focus {
+  outline: 3px solid rgba(58, 174, 168, 0.18);
+  outline-offset: 3px;
+}
+
+.mute-btn {
+  background: #f07b48;
+  border-radius: 50%;
+}
+
+/* RIGHT SECTION - Modified with arrow controls */
+
+.lip-nav {
+  display: flex;
+  flex-direction: column;
+ 
+    gap: 2vw;
+  margin-top: 5vw;
+    margin-left: -4vw;
+
+}
+
+.arrow-up,
+.arrow-down {
+  font-size: 2.5vw;
+  background-color: #e0f7fa;
+  border: none;
+  width: 5vw;
+  height: 5vw;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2);
+  color: #00796b;
+  transition: all 0.3s ease;
+}
+
+.arrow-up:hover,
+.arrow-down:hover {
+  background-color: #3aaea8;
+  color: white;
+  transform: scale(1.05);
+}
+
+.arrow-up.active,
+.arrow-down.active {
+  background-color: #3aaea8;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(58, 174, 168, 0.3);
+}
+.arrow-straight {
+  font-size: 2.5vw;
+  background-color: #e0f7fa;
+  border: none;
+  width: 5vw;
+  height: 5vw;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2);
+  color: #00796b;
+  transition: all 0.3s ease;
+}
+
+.arrow-straight:hover {
+  background-color: #3aaea8;
+  color: white;
+  transform: scale(1.05);
+}
+
+.arrow-straight.active {
+  background-color: #3aaea8;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(58, 174, 168, 0.3);
+}
+.lip-position-indicator {
+  text-align: center;
+}
+
+.lip-text {
+  font-size: 1.2vw;
+  font-weight: bold;
+  color: #00796b;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* Container for letter navigation */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  margin-top: 3vw;
+}
+
+.arrow {
+  font-size: 3.3vw;
+  background-color: #e0f7fa;
+  border: none;
+  width: 4.8vw;
+  height: 4.8vw;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2);
+  color: #00796b;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.arrow:disabled {
+  background-color: #cfd8dc;
+  color: #90a4ae;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.center-text {
+  font-size: 5rem;
+  font-weight: bold;
+  color: #00796b;
+  width: 4vw;
+  text-align: center;
+}
+
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.round-image {
+  width: 4.8vw;
+  height: 4.8vw;
+  border-radius: 50%;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.round-image:active {
+  transform: scale(1.1);
+}
+
+.user-guide-close-icon {
+  position: fixed;
+  top: 3vw;
+  right: 4vw;
+  background: #009688;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2vw;
+  color: black;
+  cursor: pointer;
+  z-index: 2010;
+  box-shadow: 0 2px 8px rgba(93, 145, 195, 0.18);
+  transition: background 0.2s, color 0.2s;
+}
+
+.user-guide-close-icon:hover {
+  background: #00796b;
+  color: white;
+}
+
+/* Small-screen fallback */
+@media (max-width: 980px) {
+  .listen-img {
+    width: 72px;
+    height: 72px;
+  }
+  
+  .arrow-up,
+  .arrow-down {
+    width: 72px;
+    height: 72px;
+    font-size: 36px;
+  }
+  
+  .lip-text {
+    font-size: 16px;
+  }
+}
+
+/* video frame for left card */
+.video-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 1vw;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 12px 24px rgba(0, 0, 0, 0.16), 0 24px 48px rgba(0, 0, 0, 0.12);
+}
+
+  .video-frame.square {
+    aspect-ratio: 1 / 1;
+  }
+
+  .video-frame > video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .pause-btn, .pause-mute-btn {
+  background: #3aaea8;
+  border-radius: 50%;
+}
+
+/* If you want different styling for mute vs pause */
+.mute-btn {
+  background: #f07b48;
+  border-radius: 50%;
+}
+
+.pause-btn {
+  background: #3aaea8;
+  border-radius: 50%;
+}
+
+.pause-mute-btn {
+  background: #f07b48;
+  border-radius: 50%;
+}

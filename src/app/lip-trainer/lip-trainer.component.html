@@ -1,0 +1,100 @@
+<div class="pp-page">
+  <div class="pp-header">
+    <h1>Lip Trainer</h1>
+  </div>
+
+  <div class="pp-main">
+    <!-- LEFT SECTION - Same as pronunciation component -->
+    <div class="pp-left">
+      <div class="word-card">
+        <div class="word-img-wrap">
+          <div class="video-frame square">
+            <video [src]="current.imgSrc" autoplay loop muted preload="auto" playsinline>
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+
+        <div class="word-text">{{ current.word }}</div>
+
+        <div class="phonetic-pill">
+          {{ current.phonetics }}
+        </div>
+
+        <div class="image-container">
+          <img src="assets/pronunciation/audio.png" alt="Play audio" class="round-image" (click)="playWordAudio()">
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER SECTION - Modified for lip trainer -->
+    <div class="pp-center">
+      <div class="word-card center-card">
+        <div class="center-media">
+          <!-- Default image shown when no video is playing -->
+          <img *ngIf="!isVideoPlaying" 
+               [src]="currentDisplayImage" 
+               class="media-rounded default-image"
+               alt="Lip position guide">
+
+          <!-- Video element shown when playing -->
+          <video *ngIf="isVideoPlaying"
+                 #videoEl
+                 [src]="currentVideoSrc"
+                 class="media-rounded"
+                 (ended)="onVideoEnded()"
+                 autoplay
+                 muted
+                  height="469" width="521">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+
+       <div class="controls-row">
+  <!-- Normal Video Button (Play/Pause Toggle) -->
+  <img class="listen-img"
+       [src]="normalVideoIcon"
+       [alt]="isVideoPlaying && currentPlayType === 'normal' && !isVideoPaused ? 'Pause video' : 'Play video'"
+       role="button"
+       tabindex="0"
+       (click)="onNormalVideoClick()"
+       (keydown.enter)="onNormalVideoClick()" />
+
+  <!-- Muted Video Button (Play/Pause Toggle) -->
+  <img class="listen-img mute-btn"
+       [src]="mutedVideoIcon"
+       [alt]="isVideoPlaying && currentPlayType === 'muted' && !isVideoPaused ? 'Pause muted video' : 'Play muted video'"
+       role="button"
+       tabindex="0"
+       (click)="onMutedVideoClick()"
+       (keydown.enter)="onMutedVideoClick()" />
+</div>
+      </div>
+    </div>
+
+    <!-- RIGHT SECTION - Modified with arrow controls -->
+    <div class="pp-right">
+      <!-- Arrow navigation for lip positions -->
+      <div class="lip-nav">
+        <button class="arrow-up" (click)="setLipPosition('left')" [class.active]="lipPosition === 'left'">
+          ▲
+        </button>
+         <!-- Add a straight/reset button -->
+        <button class="arrow-straight" (click)="setLipPosition('straight')" [class.active]="lipPosition === 'straight'">
+            ●
+        </button>
+        <button class="arrow-down" (click)="setLipPosition('right')" [class.active]="lipPosition === 'right'">
+          ▼
+        </button>
+      </div>
+
+      <!-- Letter navigation container -->
+      <div class="container">
+        <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
+        <span class="center-text">{{ current.letter }}</span>
+        <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
+      </div>
+    </div>
+  </div>
+</div>
+<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">×</button>

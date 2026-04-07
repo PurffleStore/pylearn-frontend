@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { BrandService } from '../shared/brand.service';
 import { MatDialog } from '@angular/material/dialog';
 import { PronunciationComponent } from '../pronunciation/pronunciation.component';
+import { LipTrainerComponent } from '../lip-trainer/lip-trainer.component';
 import { AuthenticationService } from '../core/services/authentication.service';
 
 @Component({
@@ -172,5 +173,12 @@ export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
       disableClose: true
     });
   }
-
+  openliptrainer(): void {
+    const dialogRef = this.dialog.open(LipTrainerComponent, {
+      width: '90vw',
+      maxWidth: '95vw',
+      height: '85vh',
+      disableClose: true
+    });
+  }
 }
