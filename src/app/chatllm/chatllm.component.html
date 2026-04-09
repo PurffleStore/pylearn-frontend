@@ -2,11 +2,42 @@
 <!-- SPEECH TUTOR — Angular Chat Component Template       -->
 <!-- ═══════════════════════════════════════════════════════ -->
 
-<div class="app-shell">
+<div class="app-shell" (click)="focusInput()">
+
+  <!-- ════════ TEAMS-STYLE START OVERLAY ════════ -->
+  <div class="start-overlay" [class.overlay-hidden]="!showOverlay">
+    <div class="overlay-backdrop"></div>
+    <div class="overlay-card">
+
+      <!-- Teacher avatar with pulse ring -->
+      <div class="overlay-avatar-wrap">
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring delay"></div>
+        <img src="assets/staticchat/teacher.png" alt="Teacher" class="overlay-avatar" />
+        <span class="online-dot"></span>
+      </div>
+
+      <p class="overlay-name">English Tutor</p>
+      <p class="overlay-subtitle">Your AI English Teacher is ready</p>
+
+      <!-- Start button -->
+      <button class="overlay-start-btn"
+              (mousedown)="$event.preventDefault()"
+              (click)="onStartLesson(); $event.stopPropagation()">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        Start Lesson
+      </button>
+
+      <p class="overlay-hint">Video + chat will begin immediately</p>
+    </div>
+  </div>
 
   <!-- ── TOP BAR ── -->
   <header class="top-bar">
-    <button class="home-btn" title="Home" (click)="goHome()">
+    <button class="home-btn"
+            title="Home"
+            (mousedown)="$event.preventDefault()"
+            (click)="goHome(); $event.stopPropagation()">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
     </button>
     <span class="app-title">Subject Tutor</span>
@@ -17,21 +48,34 @@
 
     <!-- ════════ CHAT PANEL (LEFT) ════════ -->
     <section class="chat-panel">
-      <img src="assets/staticchat/bgimg.png" class="bg-image" alt="Background" />
+      <img src="assets/staticchat/classroom.png" class="bg-image" alt="Background" />
 
       <!-- Scroll arrows -->
-      <button class="scroll-arrow up" [class.visible]="showScrollUp" (click)="scrollUp()">
+      <button class="scroll-arrow up"
+              [class.visible]="showScrollUp"
+              (mousedown)="$event.preventDefault()"
+              (click)="scrollUp(); $event.stopPropagation()">
         <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" /></svg>
       </button>
-      <button class="scroll-arrow down" [class.visible]="showScrollDown" (click)="scrollDown()">
+
+      <button class="scroll-arrow down"
+              [class.visible]="showScrollDown"
+              (mousedown)="$event.preventDefault()"
+              (click)="scrollDown(); $event.stopPropagation()">
         <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" /></svg>
       </button>
 
       <!-- Messages -->
-      <div class="messages-scroll" #messagesScroll (scroll)="onScroll()">
+      <div class="messages-scroll"
+           #messagesScroll
+           (scroll)="onScroll()"
+           (click)="$event.stopPropagation()">
 
-        <!-- Bot / User messages -->
-        <div *ngFor="let msg of messages" class="msg-row" [ngClass]="msg.role">
+        <div *ngFor="let msg of messages; let i = index"
+             class="msg-row"
+             [ngClass]="msg.role"
+             [attr.data-msg-index]="i">
+
           <div class="msg-avatar">
             <img *ngIf="msg.role==='bot'" src="assets/staticchat/teacher.png" alt="Teacher" />
             <img *ngIf="msg.role==='user'" src="assets/staticchat/student.png" alt="Student" />
@@ -39,19 +83,29 @@
 
           <div class="msg-col">
             <div class="msg-bubble-wrap">
-              <div class="msg-bubble" [innerHTML]="formatText(msg.text)"></div>
+
+              <!-- Timed HTML bubble -->
+              <div *ngIf="msg.role === 'bot' && msg.hasTimings"
+                   class="msg-bubble timed-bubble"
+                   [innerHTML]="msg.safeHtml">
+              </div>
+
+              <!-- Plain / formatted text bubble -->
+              <div *ngIf="msg.role !== 'bot' || !msg.hasTimings"
+                   class="msg-bubble"
+                   [innerHTML]="formatText(msg.text)">
+              </div>
 
               <!-- Per-message video play button -->
               <button *ngIf="msg.role === 'bot' && msg.videoKey"
                       class="msg-video-btn"
                       title="Play this response video"
-                      (click)="playMessageVideo(msg.videoKey!)">
-                <svg viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+                      (mousedown)="$event.preventDefault()"
+                      (click)="playMessageVideo(msg.videoKey!); $event.stopPropagation()">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               </button>
-            </div>
 
+            </div>
             <div class="msg-time">{{ msg.time }}</div>
           </div>
         </div>
@@ -68,54 +122,57 @@
       </div>
 
       <!-- Suggestion chips -->
-      <div class="suggestions-bar">
+      <div class="suggestions-bar" (click)="$event.stopPropagation()">
         <button class="chip"
                 *ngFor="let s of suggestions; let i = index"
                 [style.animation-delay]="(i * 0.06) + 's'"
+                (mousedown)="$event.preventDefault()"
                 (click)="sendMessage(s)">
           {{ s }}
         </button>
       </div>
 
       <!-- Input bar -->
-      <div class="input-bar">
-        <input type="text"
+      <div class="input-bar" (click)="$event.stopPropagation()">
+        <input #inputField
+               type="text"
                class="input-field"
                [(ngModel)]="userInput"
                (keydown.enter)="sendMessage(userInput)"
                (focus)="inputFocused=true"
-               (blur)="inputFocused=false"
-               [disabled]="isTyping"
+               (blur)="onInputBlur()"
+               [disabled]="isTyping || showOverlay"
                placeholder="Type your message..."
                autocomplete="off" />
+
         <button class="icon-btn mic-btn"
                 title="Voice input"
+                (mousedown)="$event.preventDefault()"
                 (click)="toggleVoiceInput()"
-                [disabled]="isTyping"
+                [disabled]="isTyping || showOverlay"
                 [class.listening]="isListening">
-
           <svg viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z" />
           </svg>
         </button>
+
         <button class="icon-btn send-btn"
                 title="Send"
+                (mousedown)="$event.preventDefault()"
                 (click)="sendMessage(userInput)"
-                [disabled]="isTyping || !userInput.trim()">
+                [disabled]="isTyping || !userInput.trim() || showOverlay">
           <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
         </button>
       </div>
     </section>
 
     <!-- ════════ VIDEO PANEL (RIGHT) ════════ -->
-    <section class="video-panel">
+    <section class="video-panel" (click)="$event.stopPropagation()">
       <div class="video-container">
-        <!-- HTML5 Video element -->
         <video #tutorVideo playsinline></video>
 
-        <!-- Poster (tutor image placeholder) -->
+        <!-- Poster placeholder -->
         <div class="video-poster" [class.hidden]="!showPoster">
-          <!-- Replace this SVG with an <img src="tutor-poster.jpg"> for your real tutor image -->
           <svg viewBox="0 0 420 500" xmlns="http://www.w3.org/2000/svg">
             <rect width="420" height="500" fill="#d4dce8" />
             <circle cx="210" cy="180" r="80" fill="#c0a888" />
@@ -125,26 +182,34 @@
             <circle cx="190" cy="168" r="5" fill="#1e1e1e" />
             <circle cx="230" cy="168" r="5" fill="#1e1e1e" />
             <ellipse cx="210" cy="188" rx="12" ry="4" fill="#d4a088" />
-            <text x="210" y="420" text-anchor="middle" font-family="Nunito,sans-serif" font-size="14" fill="#64748b" font-weight="600">Click play to start</text>
+            <text x="210" y="420" text-anchor="middle" font-family="Nunito,sans-serif"
+                  font-size="14" fill="#64748b" font-weight="600">Click play to start</text>
           </svg>
         </div>
-
       </div>
 
       <!-- Video controls -->
       <div class="video-controls">
-        <!-- Play / Pause button -->
-        <button class="ctrl-btn" (click)="onPlayPause()" [title]="(isActivePlaying && !isVideoPaused) ? 'Pause' : 'Play'">
-          <!-- Pause icon -->
-          <svg *ngIf="isActivePlaying && !isVideoPaused" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
-          <!-- Play icon -->
-          <svg *ngIf="!isActivePlaying || isVideoPaused" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        <button class="ctrl-btn"
+                (mousedown)="$event.preventDefault()"
+                (click)="onPlayPause()"
+                [title]="(isActivePlaying && !isVideoPaused) ? 'Pause' : 'Play'">
+          <svg *ngIf="isActivePlaying && !isVideoPaused" viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+          <svg *ngIf="!isActivePlaying || isVideoPaused" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </button>
-        <!-- Restart button -->
-        <button class="ctrl-btn" (click)="onReplay()" title="Restart">
-          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" /></svg>
+
+        <button class="ctrl-btn"
+                (mousedown)="$event.preventDefault()"
+                (click)="onReplay()"
+                title="Restart">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+          </svg>
         </button>
-        <!--<span class="video-status">{{ videoStatus }}</span>-->
       </div>
     </section>
 
