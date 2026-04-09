@@ -192,7 +192,7 @@ get mutedVideoIcon(): string {
       case 'right':
         return 'assets/lip-trainer/default-image/new_default_right.png';
       default:
-        return 'assets/lip-trainer/default-image/new_default_straight.jpg';
+        return 'assets/lip-trainer/default-image/new_default_straight.png';
     }
   }
 

@@ -382,13 +382,12 @@
 
 
 .new-center-media {
-  width: 15vw;
-  height: 15vw;
+  width: 17vw;
+  height: 17vw;
   background-color: #e9f7f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
   border-radius: 1vw;
   overflow: hidden;
 }
@@ -448,7 +447,7 @@
 
 /* New Container Styles - Display only */
 .new-container {
-   margin-top: -18vw;
+   margin-top: -19vw;
     margin-left: 2vw;
   padding: 15px;
   background: #f0f8ff;
@@ -457,17 +456,7 @@
   text-align: center;
 }
 
-.new-center-media {
-  width: 15vw;
-  height: 15vw;
-  background-color: #e9f7f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  border-radius: 1vw;
-  overflow: hidden;
-}
+
 
 .new-center-media > video,
 .new-center-media > img {
