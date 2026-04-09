@@ -43,7 +43,7 @@
   border-radius: 10px;
   background: #3b82f6;
   border: none;
-  cursor: pointer;
+  cursor: pointer!important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,6 +52,7 @@
 
   .home-btn:hover {
     transform: translateY(-50%) scale(1.08);
+    cursor: pointer !important;
   }
 
   .home-btn svg {
@@ -584,3 +585,37 @@
     max-width: 85%;
   }
 }
+.mic-btn.listening {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.35);
+}
+.msg-bubble-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.msg-video-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+  .msg-video-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  .msg-video-btn:hover {
+    transform: scale(1.05);
+  }

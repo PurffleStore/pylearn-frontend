@@ -73,28 +73,50 @@
     </div>
 
     <!-- RIGHT SECTION - Modified with arrow controls -->
-    <div class="pp-right">
-      <!-- Arrow navigation for lip positions -->
-      <div class="lip-nav">
-        <button class="arrow-up" (click)="setLipPosition('left')" [class.active]="lipPosition === 'left'">
-          ▲
-        </button>
-         <!-- Add a straight/reset button -->
-        <button class="arrow-straight" (click)="setLipPosition('straight')" [class.active]="lipPosition === 'straight'">
-            ●
-        </button>
-        <button class="arrow-down" (click)="setLipPosition('right')" [class.active]="lipPosition === 'right'">
-          ▼
-        </button>
-      </div>
+<div class="pp-right">
+  <!-- First Lip Navigation -->
+  <div class="lip-nav">
+    
+    <button class="arrow-up" (click)="setLipPosition('left')" [class.active]="lipPosition === 'left'">
+      ▲
+    </button>
+    <button class="arrow-straight" (click)="setLipPosition('straight')" [class.active]="lipPosition === 'straight'">
+      ●
+    </button>
+    <button class="arrow-down" (click)="setLipPosition('right')" [class.active]="lipPosition === 'right'">
+      ▼
+    </button>
+  </div>
 
-      <!-- Letter navigation container -->
-      <div class="container">
-        <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
-        <span class="center-text">{{ current.letter }}</span>
-        <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
-      </div>
+  <!-- NEW Container - Display only, no controls -->
+  <div class="new-container">
+    <div class="new-center-media">
+      <!-- Default image shown when no video is playing -->
+      <img *ngIf="!isNewVideoPlaying" 
+           [src]="newCurrentDisplayImage" 
+           class="new-default-image"
+           alt="New lip position guide">
+      
+      <!-- Video element shown when playing -->
+      <video *ngIf="isNewVideoPlaying"
+             #newVideoEl
+             [src]="newCurrentVideoSrc"
+             class="new-media-rounded"
+             (ended)="onNewVideoEnded()"
+             autoplay
+             muted>
+        Your browser does not support the video tag.
+      </video>
     </div>
+  </div>
+
+  <!-- Letter navigation container -->
+  <div class="container">
+    <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
+    <span class="center-text">{{ current.letter }}</span>
+    <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
+  </div>
+</div>
   </div>
 </div>
 <button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">×</button>

@@ -16,7 +16,7 @@ interface PracticeItem {
 })
 export class LipTrainerComponent {
   @ViewChild('videoEl') videoElRef?: ElementRef<HTMLVideoElement>;
-
+ @ViewChild('newVideoEl') newVideoElRef?: ElementRef<HTMLVideoElement>;
   // Data items - same as pronunciation component
   items: PracticeItem[] = [
     { letter: 'A', word: 'Apple', phonetics: '/ˈæpəl/', imgSrc: 'assets/pronunciation/animvideo/apple.mp4', audioSrc: 'assets/pronunciation/audio/apple.mp3' },
@@ -56,7 +56,9 @@ export class LipTrainerComponent {
   pauseIconUrl = 'assets/pronunciation/pause.png';
   muteIconUrl = 'assets/lip-trainer/newmute.png';
   currentPlayType: 'normal' | 'muted' = 'normal';
-
+isNewVideoPlaying = false;
+  newCurrentVideoSrc = '';
+  isNewVideoPaused = false;
   constructor(
     public dialogRef: MatDialogRef<LipTrainerComponent>,
   ) { }
@@ -102,11 +104,7 @@ get mutedVideoIcon(): string {
     this.stopVideoAndReset();
   }
 
-  // Reset to straight position (default)
-  resetToStraight(): void {
-    this.lipPosition = 'straight';
-    this.stopVideoAndReset();
-  }
+  
 
   // Get display text for current lip position
   getLipPositionText(): string {
@@ -117,53 +115,9 @@ get mutedVideoIcon(): string {
     }
   }
 
-  // Handle normal video button click
-  onNormalVideoClick(): void {
-    const video = this.videoElRef?.nativeElement;
-    
-    // If no video playing OR different type is playing
-    if (!this.isVideoPlaying || this.currentPlayType !== 'normal') {
-      this.playVideo();
-      return;
-    }
-    
-    // Video exists and is of correct type, toggle play/pause
-    if (video) {
-      if (video.paused) {
-        video.play().catch(error => {
-          console.error('Error resuming video:', error);
-        });
-        this.isVideoPaused = false;
-      } else {
-        video.pause();
-        this.isVideoPaused = true;
-      }
-    }
-  }
+ 
 
-  // Handle muted video button click
-  onMutedVideoClick(): void {
-    const video = this.videoElRef?.nativeElement;
-    
-    // If no video playing OR different type is playing
-    if (!this.isVideoPlaying || this.currentPlayType !== 'muted') {
-      this.playMutedVideo();
-      return;
-    }
-    
-    // Video exists and is of correct type, toggle play/pause
-    if (video) {
-      if (video.paused) {
-        video.play().catch(error => {
-          console.error('Error resuming video:', error);
-        });
-        this.isVideoPaused = false;
-      } else {
-        video.pause();
-        this.isVideoPaused = true;
-      }
-    }
-  }
+ 
 
   // Get video filename based on lip position and mute status
   private getVideoNameForCurrentPosition(isMuted: boolean): string {
@@ -190,28 +144,6 @@ get mutedVideoIcon(): string {
     }
   }
 
-  // Play video file
-  private playVideoFile(videoName: string, playType: 'normal' | 'muted'): void {
-    // Stop any currently playing video
-    this.stopVideoAndReset();
-    
-    // Set video source and play
-    this.currentVideoSrc = `assets/lip-trainer/${videoName}`;
-    this.isVideoPlaying = true;
-    this.currentPlayType = playType;
-    this.isVideoPaused = false;
-    
-    setTimeout(() => {
-      const video = this.videoElRef?.nativeElement;
-      if (video) {
-        video.load();
-        video.play().catch(error => {
-          console.error('Error playing video:', error);
-          this.onVideoEnded();
-        });
-      }
-    }, 0);
-  }
   
   // Play normal video
   playVideo(): void {
@@ -225,22 +157,7 @@ get mutedVideoIcon(): string {
     this.playVideoFile(videoName, 'muted');
   }
   
-  // Stop video and reset
-  private stopVideoAndReset(): void {
-    const video = this.videoElRef?.nativeElement;
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
-    this.isVideoPlaying = false;
-    this.isVideoPaused = false;
-    this.currentVideoSrc = '';
-  }
-  
-  // Handle video ended event
-  onVideoEnded(): void {
-    this.stopVideoAndReset();
-  }
+ 
 
   // Play sample audio for current word
   playWordAudio(): void {
@@ -267,6 +184,191 @@ get mutedVideoIcon(): string {
     this.resetToStraight();
   }
 
+  // Get new display image based on lip position
+  get newCurrentDisplayImage(): string {
+    switch (this.lipPosition) {
+      case 'left':
+        return 'assets/lip-trainer/default-image/new_default_left.png';
+      case 'right':
+        return 'assets/lip-trainer/default-image/new_default_right.png';
+      default:
+        return 'assets/lip-trainer/default-image/new_default_straight.jpg';
+    }
+  }
+
+  // Get new video filename based on lip position and mute status
+  private getNewVideoNameForCurrentPosition(isMuted: boolean): string {
+    const word = this.current.word.toLowerCase().replace(/\s+/g, '-');
+    
+    if (isMuted) {
+      switch (this.lipPosition) {
+        case 'left':
+          return `new_${word}_mute_left.mp4`;
+        case 'right':
+          return `new_${word}_mute_right.mp4`;
+        default:
+          return `new_${word}_mute_straight.mp4`;
+      }
+    } else {
+      switch (this.lipPosition) {
+        case 'left':
+          return `new_${word}_left.mp4`;
+        case 'right':
+          return `new_${word}_right.mp4`;
+        default:
+          return `new_${word}_straight.mp4`;
+      }
+    }
+  }
+
+  // Modified playVideoFile to also play new video
+  private playVideoFile(videoName: string, playType: 'normal' | 'muted'): void {
+    // Stop any currently playing videos
+    this.stopVideoAndReset();
+    this.stopNewVideoAndReset();
+    
+    // Set video source and play original video
+    this.currentVideoSrc = `assets/lip-trainer/${videoName}`;
+    this.isVideoPlaying = true;
+    this.currentPlayType = playType;
+    this.isVideoPaused = false;
+    
+    // Get and play new video
+    const newVideoName = this.getNewVideoNameForCurrentPosition(playType === 'muted');
+    this.newCurrentVideoSrc = `assets/lip-trainer/${newVideoName}`;
+    this.isNewVideoPlaying = true;
+    
+    setTimeout(() => {
+      // Play original video
+      const video = this.videoElRef?.nativeElement;
+      if (video) {
+        video.load();
+        video.play().catch(error => {
+          console.error('Error playing video:', error);
+          this.onVideoEnded();
+        });
+      }
+      
+      // Play new video
+      const newVideo = this.newVideoElRef?.nativeElement;
+      if (newVideo) {
+        newVideo.load();
+        newVideo.play().catch(error => {
+          console.error('Error playing new video:', error);
+          this.onNewVideoEnded();
+        });
+      }
+    }, 0);
+  }
+
+  // Modified onNormalVideoClick to control both videos
+  onNormalVideoClick(): void {
+    const video = this.videoElRef?.nativeElement;
+    const newVideo = this.newVideoElRef?.nativeElement;
+    
+    // If no video playing OR different type is playing
+    if (!this.isVideoPlaying || this.currentPlayType !== 'normal') {
+      this.playVideo();
+      return;
+    }
+    
+    // Video exists and is of correct type, toggle play/pause for both
+    if (video && newVideo) {
+      if (video.paused) {
+        // Resume both videos
+        video.play().catch(error => {
+          console.error('Error resuming video:', error);
+        });
+        newVideo.play().catch(error => {
+          console.error('Error resuming new video:', error);
+        });
+        this.isVideoPaused = false;
+        this.isNewVideoPaused = false;
+      } else {
+        // Pause both videos
+        video.pause();
+        newVideo.pause();
+        this.isVideoPaused = true;
+        this.isNewVideoPaused = true;
+      }
+    }
+  }
+
+  // Modified onMutedVideoClick to control both videos
+  onMutedVideoClick(): void {
+    const video = this.videoElRef?.nativeElement;
+    const newVideo = this.newVideoElRef?.nativeElement;
+    
+    // If no video playing OR different type is playing
+    if (!this.isVideoPlaying || this.currentPlayType !== 'muted') {
+      this.playMutedVideo();
+      return;
+    }
+    
+    // Video exists and is of correct type, toggle play/pause for both
+    if (video && newVideo) {
+      if (video.paused) {
+        // Resume both videos
+        video.play().catch(error => {
+          console.error('Error resuming video:', error);
+        });
+        newVideo.play().catch(error => {
+          console.error('Error resuming new video:', error);
+        });
+        this.isVideoPaused = false;
+        this.isNewVideoPaused = false;
+      } else {
+        // Pause both videos
+        video.pause();
+        newVideo.pause();
+        this.isVideoPaused = true;
+        this.isNewVideoPaused = true;
+      }
+    }
+  }
+
+  // Modified stopVideoAndReset to also stop new video
+  private stopVideoAndReset(): void {
+    const video = this.videoElRef?.nativeElement;
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+    this.isVideoPlaying = false;
+    this.isVideoPaused = false;
+    this.currentVideoSrc = '';
+  }
+
+  // Stop new video and reset
+  private stopNewVideoAndReset(): void {
+    const newVideo = this.newVideoElRef?.nativeElement;
+    if (newVideo) {
+      newVideo.pause();
+      newVideo.currentTime = 0;
+    }
+    this.isNewVideoPlaying = false;
+    this.isNewVideoPaused = false;
+    this.newCurrentVideoSrc = '';
+  }
+
+  // Modified onVideoEnded to also handle new video
+  onVideoEnded(): void {
+    this.stopVideoAndReset();
+    this.stopNewVideoAndReset();
+  }
+
+  // Handle new video ended event
+  onNewVideoEnded(): void {
+    // If new video ended, also stop original video
+    this.onVideoEnded();
+  }
+
+  // Modified resetToStraight
+  resetToStraight(): void {
+    this.lipPosition = 'straight';
+    this.stopVideoAndReset();
+    this.stopNewVideoAndReset();
+  }
   // Close popup
   closePopup(): void {
     this.stopVideoAndReset();

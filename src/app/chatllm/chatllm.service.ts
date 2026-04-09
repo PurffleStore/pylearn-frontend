@@ -9,8 +9,8 @@ export interface ChatResponse {
   reply: string;
   suggestions: string[];
   session_id: string;
-  video_key: string;    // e.g. "greeting", "videos/present_simple_definition.mp4"
-  video_url: string;    // direct video path from backend
+  video_key: string;
+  video_url: string;
 }
 
 export interface SuggestionsResponse {
@@ -19,14 +19,14 @@ export interface SuggestionsResponse {
 }
 
 export interface VideoMap {
-  [key: string]: string;  // video_key → video_path
+  [key: string]: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private readonly apiBaseUrl = environment.apiBaseUrl.replace(/\/+$/, '');
   private readonly apiBase = `${this.apiBaseUrl}/chat_llm`;
- 
+
   private sessionId: string;
 
   /** Observable stream of current video key — components subscribe to this */
@@ -37,18 +37,31 @@ export class ChatService {
   public videoMap: VideoMap = {};
 
   constructor(private http: HttpClient) {
-    this.sessionId = localStorage.getItem('speech_tutor_sid') || this.generateId();
-    localStorage.setItem('speech_tutor_sid', this.sessionId);
+    // Always create a fresh session when service is created
+    this.sessionId = this.generateId();
   }
 
   private generateId(): string {
     return 'sid_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
   }
 
+  /** Start a completely fresh session */
+  resetSession(): void {
+    this.sessionId = this.generateId();
+    this.videoSubject.next('blink');
+  }
+
+  /** Optional: get current session id */
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
   /** Load all video mappings on app init */
   loadVideoMap(): Observable<{ videos: VideoMap }> {
     return this.http.get<{ videos: VideoMap }>(`${this.apiBase}/videos`).pipe(
-      tap(res => { this.videoMap = res.videos || {}; })
+      tap(res => {
+        this.videoMap = res.videos || {};
+      })
     );
   }
 
@@ -60,7 +73,7 @@ export class ChatService {
     }).pipe(
       tap(res => {
         this.sessionId = res.session_id || this.sessionId;
-        // Emit video key so the video panel reacts
+
         if (res.video_key) {
           this.videoSubject.next(res.video_key);
         }
@@ -68,23 +81,35 @@ export class ChatService {
     );
   }
 
-  /** Get initial suggestions */
+  /** Get suggestions for current session */
   getSuggestions(): Observable<SuggestionsResponse> {
     return this.http.get<SuggestionsResponse>(
       `${this.apiBase}/suggestions?session_id=${this.sessionId}`
+    ).pipe(
+      tap(res => {
+        this.sessionId = res.session_id || this.sessionId;
+      })
     );
   }
 
   /** Get topics list */
   getTopics(): Observable<{ topics: { index: number; name: string; id: string }[] }> {
-    return this.http.get<any>(`${this.apiBase}/topics`);
+    return this.http.get<{ topics: { index: number; name: string; id: string }[] }>(
+      `${this.apiBase}/topics`
+    );
   }
 
   /** Resolve a video_key to a playable URL path */
   resolveVideoUrl(videoKey: string): string {
-    // If the key is already a path (contains /), use it directly
-    if (videoKey.includes('/')) return videoKey;
-    // Otherwise look it up in the video map
+    if (!videoKey) {
+      return this.videoMap['fallback'] || 'assets/staticchat/feedback/blink.mp4';
+    }
+
+    // If already a direct path
+    if (videoKey.includes('/')) {
+      return videoKey;
+    }
+
     return this.videoMap[videoKey] || this.videoMap['fallback'] || 'assets/staticchat/feedback/blink.mp4';
   }
 

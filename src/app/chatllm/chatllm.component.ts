@@ -6,12 +6,21 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService, ChatResponse } from './chatllm.service';
 import { Subscription } from 'rxjs';
+import { Router } from '@angular/router';
 
 interface Message {
   text: string;
   role: 'user' | 'bot';
   time: string;
+  videoKey?: string;
 }
+
+
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+
 
 @Component({
   selector: 'app-chatllm',
@@ -48,19 +57,28 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
 
   private shouldScroll = false;
   private videoSub!: Subscription;
+  recognition: any = null;
+  isListening = false;
+  speechSupported = false;
 
   constructor(
     private chatService: ChatService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
-    // Load video map from backend
+    this.chatService.resetSession();
+
+    this.messages = [];
+    this.suggestions = [];
+    this.userInput = '';
+    this.isTyping = false;
+
     this.chatService.loadVideoMap().subscribe({
       error: () => console.warn('Could not load video map')
     });
 
-    // Subscribe to video key changes
     this.videoSub = this.chatService.video$.subscribe(key => {
       if (key && key !== this.currentVideoKey) {
         this.currentVideoKey = key;
@@ -76,6 +94,10 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
 
   ngOnDestroy(): void {
     if (this.videoSub) this.videoSub.unsubscribe();
+
+    if (this.recognition && this.isListening) {
+      this.recognition.stop();
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -166,8 +188,8 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
   }
 
   private playVideoByKey(key: string): void {
-    const video = this.tutorVideo?.nativeElement;
-    if (!video || !this.introPlayed) return;
+  const video = this.tutorVideo?.nativeElement;
+  if (!video) return;
 
     this.lastQuestionVideoKey = key;  // store for replay via play button
     const url = this.chatService.resolveVideoUrl(key);
@@ -220,15 +242,25 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  private addBotMessage(text: string): void {
-    this.messages.push({ text, role: 'bot', time: this.getTime() });
+  private addBotMessage(text: string, videoKey?: string): void {
+    this.messages.push({
+      text,
+      role: 'bot',
+      time: this.getTime(),
+      videoKey: videoKey || ''
+    });
     this.shouldScroll = true;
   }
 
   sendMessage(text: string): void {
     if (!text?.trim() || this.isTyping) return;
 
-    this.messages.push({ text: text.trim(), role: 'user', time: this.getTime() });
+    this.messages.push({
+      text: text.trim(),
+      role: 'user',
+      time: this.getTime()
+    });
+
     this.userInput = '';
     this.isTyping = true;
     this.shouldScroll = true;
@@ -236,15 +268,31 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     this.chatService.sendMessage(text.trim()).subscribe({
       next: (res: ChatResponse) => {
         this.isTyping = false;
-        this.addBotMessage(res.reply);
+
+        const replyVideoKey = res.video_key || res.video_url || '';
+
+        this.addBotMessage(res.reply, replyVideoKey);
         this.suggestions = res.suggestions || [];
-        // Video is auto-played via the video$ subscription in chatService
+
+        // Ensure reply video plays immediately in same right panel
+        if (replyVideoKey) {
+          this.playMessageVideo(replyVideoKey);
+        }
       },
       error: () => {
         this.isTyping = false;
         this.addBotMessage("Could not reach the server. Make sure Flask is running on port 5000.");
       }
     });
+  }
+
+  playMessageVideo(videoKey: string): void {
+    if (!videoKey) return;
+
+    // allow response videos even if intro was not clicked
+    this.introPlayed = true;
+    this.currentVideoKey = videoKey;
+    this.playVideoByKey(videoKey);
   }
 
   private loadSuggestions(): void {
@@ -283,5 +331,24 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
   scrollDown(): void {
     const el = this.messagesScroll?.nativeElement;
     el?.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
+
+  goHome() {
+    this.router.navigate(['/']);
+  }
+
+ 
+  toggleVoiceInput(): void {
+    if (!this.speechSupported) {
+      this.addBotMessage('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (this.isListening) {
+      this.recognition.stop();
+    } else {
+      this.userInput = '';
+      this.recognition.start();
+    }
   }
 }
