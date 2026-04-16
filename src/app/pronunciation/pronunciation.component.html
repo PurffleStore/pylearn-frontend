@@ -20,9 +20,27 @@
           {{ current.phonetics }}
         </div>
 
-        <div class="image-container">
-          <img src="assets/pronunciation/audio.png" alt="Play audio" class="round-image" (click)="playWordAudio()">
-        </div>
+         <div class="image-container">
+          <button class="audio-btn"
+                  (click)="playWordAudio()"
+                  [disabled]="isRecording || isCountingDown"
+                  [attr.aria-label]="'Play pronunciation for ' + current.word"
+                  type="button"
+                  title="Click to hear the correct pronunciation"
+                  [attr.data-word]="current.word">
+            <!-- <span class="audio-btn-content">
+              <svg class="audio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a6.5 6.5 0 0 1 0 9.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <span class="audio-text">Listen</span>
+            </span>
+            <span class="btn-ripple"></span> -->
+             <img _ngcontent-ng-c238312912="" src="assets/pronunciation/audio.png" alt="Play audio" class="round-image">
+          </button>
+        </div> 
+        <!-- <div _ngcontent-ng-c238312912="" class="image-container">
+          <img _ngcontent-ng-c238312912="" src="assets/pronunciation/audio.png" alt="Play audio" class="round-image"></div> -->
       </div>
     </div>
 
@@ -31,44 +49,50 @@
         <div class="center-media">
           <video *ngIf="!showVideo"
                  src="assets/pronunciation/listening.mp4"
-                 class="media-rounded"
+                 class="media-rounded center-video"
                  autoplay loop muted
-                 (ended)="onVideoEnded()"
-                 height="469" width="521">
+                 (ended)="onVideoEnded()">
             Your browser does not support the video tag.
           </video>
 
           <video *ngIf="showVideo"
                  #videoEl
                  [src]="videoSrc"
-                 class="media-rounded"
+                 class="media-rounded center-video"
                  (play)="onVideoPlay()"
                  (pause)="onVideoPause()"
                  autoplay
                  muted
-                 (ended)="onVideoEnded()"
-                 height="469" width="521">
+                 (ended)="onVideoEnded()">
             Your browser does not support the video tag.
           </video>
         </div>
 
         <div class="controls-row">
-          <img class="listen-img"
-               [src]="isPlayingVideo ? pauseIconDataUrl : playIconDataUrl"
-               [attr.alt]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
-               [attr.aria-label]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
-               [attr.aria-pressed]="isPlayingVideo"
-               role="button"
-               tabindex="0"
-               (click)="toggleVideoPlay()"
-               (keydown.enter)="toggleVideoPlay()"
-               (keydown.space)="toggleVideoPlay(); $event.preventDefault()" />
+          <button class="play-btn"
+                  [class.playing]="isPlayingVideo"
+                  (click)="toggleVideoPlay()"
+                  [disabled]="isRecording || isCountingDown"
+                  [attr.aria-label]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
+                  [attr.aria-pressed]="isPlayingVideo"
+                  type="button"
+                  title="Play or pause the pronunciation demonstration">
+            <svg *ngIf="!isPlayingVideo" class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg *ngIf="isPlayingVideo" class="pause-icon" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            <span class="btn-shine"></span>
+          </button>
 
           <button class="progress-btn"
                   [class.recording]="isRecording"
                   [attr.aria-pressed]="isRecording"
                   (click)="toggleRecording()"
-                  type="button">
+                  type="button"
+                  [attr.aria-label]="isRecording ? 'Stop recording' : 'Start recording'">
             <svg class="progress-ring" width="85" height="85" viewBox="0 0 90 90" aria-hidden="true">
               <circle class="progress-ring__background" stroke="#3aaea8" stroke-width="6" fill="transparent" r="38" cx="45" cy="45" />
               <circle class="progress-ring__bar"
@@ -83,6 +107,188 @@
               <span class="seconds" *ngIf="isCountingDown">{{ timeLeft | number:'1.0-0' }}</span>
             </div>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK BUTTON & MODAL -->
+    <div class="feedback-section">
+      <button class="feedback-trigger-btn"
+              (click)="toggleFeedbackModal()"
+              [disabled]="score === 0 || isRecording || isCountingDown"
+              [class.enabled]="score > 0 && !isRecording && !isCountingDown"
+              type="button"
+              [attr.aria-label]="score > 0 ? 'View detailed feedback' : 'Waiting for feedback'"
+              [attr.title]="score > 0 ? 'Click to see detailed pronunciation feedback' : 'Record and get feedback first'">
+        <span class="feedback-btn-icon">📋</span>
+        <span class="feedback-btn-text">Details</span>
+        
+        <span class="btn-glow"></span>
+      </button>
+
+      <!-- FEEDBACK MODAL POPUP -->
+      <div class="feedback-modal-overlay" 
+           *ngIf="showFeedbackModal"
+           (click)="toggleFeedbackModal()"
+           [@fadeIn]>
+      </div>
+
+      <div class="feedback-modal" 
+           *ngIf="showFeedbackModal"
+           [@slideUp]>
+        
+        <div class="modal-header">
+          <div class="modal-title-section">
+            <span class="modal-icon">🎯</span>
+            <h2 class="modal-title">Your Pronunciation Feedback</h2>
+          </div>
+          <button class="modal-close-btn"
+                  (click)="toggleFeedbackModal()"
+                  type="button"
+                  aria-label="Close feedback modal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <!-- SCORE SECTION -->
+          <div class="score-section">
+            <div class="score-display">
+              <div class="score-circle">
+                <svg class="score-ring" viewBox="0 0 120 120">
+                  <circle class="score-ring-bg" cx="60" cy="60" r="54"></circle>
+                  <circle class="score-ring-progress" 
+                          cx="60" cy="60" r="54"
+                          [style.strokeDashoffset]="340 - (score * 3.4)">
+                  </circle>
+                </svg>
+                <div class="score-value">{{ score }}</div>
+              </div>
+              <div class="score-text">
+                <div class="score-label">Your Score</div>
+                <div class="score-description" [ngClass]="getScoreClass()">
+                  {{ getScoreFeedback() }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PHONEME BREAKDOWN SECTION -->
+          <div class="phoneme-breakdown-section" *ngIf="phonemeDetails.length > 0">
+
+            <!-- Colored word display -->
+            <div class="colored-word-display">
+              <span *ngFor="let seg of getColoredWordLetters()"
+                    [class.correct-letter]="seg.correct"
+                    [class.wrong-letter]="!seg.correct">{{ seg.text }}</span>
+            </div>
+
+            <!-- Score progress bar -->
+            <div class="score-progress-bar-wrap">
+              <div class="score-progress-track">
+                <div class="score-progress-fill" [style.width.%]="score"></div>
+              </div>
+              <span class="score-progress-label">{{ score }}%</span>
+            </div>
+
+            <!-- Phoneme comparison table -->
+            <div class="phoneme-table">
+              <div class="phoneme-table-header">
+                <span class="ph-col-sound">Sound</span>
+                <span class="ph-col-said">You Said</span>
+              </div>
+              <div class="phoneme-table-row"
+                   *ngFor="let row of phonemeDetails"
+                   [class.ph-row-correct]="row.correct"
+                   [class.ph-row-wrong]="!row.correct">
+                <div class="ph-col-sound phoneme-ipa">/{{ row.sound }}/</div>
+                <div class="ph-col-said phoneme-result">
+                  <ng-container *ngIf="row.correct">
+                    <span class="ph-excellent">Excellent</span>
+                  </ng-container>
+                  <ng-container *ngIf="!row.correct">
+                    <span class="ph-wrong-text">/{{ row.said || '?' }}/</span>
+                    <p class="ph-tip" *ngIf="row.tip">This is a /{{ row.sound }}/ sound. {{ row.tip }}.</p>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FEEDBACK CONTENT -->
+          <div class="feedback-content">
+            <div class="feedback-card">
+              <div class="feedback-header">
+                <span class="feedback-icon">💬</span>
+                <h3>Feedback</h3>
+              </div>
+              <p class="feedback-text">{{ shortfeedback }}</p>
+            </div>
+
+            <!-- AUDIO PLAYBACK SECTION -->
+            <div class="audio-comparison-section">
+              <div class="audio-row">
+                <!-- CORRECT PRONUNCIATION -->
+                <div class="audio-play-btn-container">
+                  <h4 class="audio-label">Correct:</h4>
+                  <button class="audio-play-btn correct-pronunciation-btn"
+                          (click)="playWordAudio()"
+                          type="button"
+                          [attr.aria-label]="'Play correct pronunciation of ' + current.word"
+                          title="Click to hear correct pronunciation">
+                    <!-- <svg class="audio-icon-small" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg> -->
+                    <span class="btn-label">🔊</span>
+                  </button>
+                </div>
+
+                <!-- USER'S RECORDING -->
+                <div class="audio-play-btn-container">
+                  <h4 class="audio-label">You Said:</h4>
+                  <button class="audio-play-btn user-recording-btn"
+                           (click)="playUserRecording()"
+                          [disabled]="!recordedAudioUrl"
+                          type="button"
+                          [attr.aria-label]="'Play your pronunciation recording'"
+                          title="Click to hear your recording">
+                    <!-- <svg class="audio-icon-small" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm-2 15l-5-5h-2v-2h2l5 5v2zm6-6h-2V7h-2V5h4v5z"></path>
+                    </svg> -->
+                    <span class="btn-label">👂</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <!-- ACTION BUTTONS -->
+          <div class="modal-actions">
+            <button class="action-btn try-again-btn"
+                    (click)="toggleFeedbackModal(); toggleRecording()"
+                    type="button"
+                    title="Try recording again">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 4v6h6M23 20v-6h-6"></path>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 19.36 18.36"></path>
+              </svg>
+              <span>Try Again</span>
+            </button>
+            <button class="action-btn next-word-btn"
+                    (click)="toggleFeedbackModal(); next()"
+                    [disabled]="index === items.length - 1"
+                    type="button"
+                    title="Move to next word">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              <span>Next Word</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -106,11 +312,36 @@
       </div>
 
       <div class="container">
-        <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
-        <span class="center-text">{{ current.letter }}</span>
-        <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
+        <button class="arrow arrow-left"
+                (click)="prev()"
+                [disabled]="index === 0 || isRecording || isCountingDown"
+                type="button"
+                [attr.aria-label]="'Previous word'"
+                title="Go to previous word">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        
+        <span class="center-text" [attr.aria-live]="'polite'">{{ current.letter }}</span>
+        
+        <button class="arrow arrow-right"
+                (click)="next()"
+                [disabled]="index === items.length - 1 || isRecording || isCountingDown"
+                type="button"
+                [attr.aria-label]="'Next word'"
+                title="Go to next word">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
 </div>
-<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">×</button>
+
+<button aria-label="Close pronunciation practice" 
+        class="user-guide-close-icon" 
+        (click)="closePopup()"
+        type="button"
+        title="Close this dialog">×</button>

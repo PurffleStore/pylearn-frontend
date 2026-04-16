@@ -4,7 +4,8 @@ import {
 import { finalize, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { PronunciationService, ScoreResponse } from './pronunciation.service';
+import { PronunciationService, ScoreResponse, PhonemeDetail } from './pronunciation.service';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 interface PracticeItem {
   letter: string;
@@ -14,10 +15,38 @@ interface PracticeItem {
   audioSrc: string;
 }
 
+interface ImprovementTip {
+  number: string;
+  title: string;
+  description: string;
+}
+
 @Component({
   selector: 'app-pronunciation',
   templateUrl: './pronunciation.component.html',
-  styleUrls: ['./pronunciation.component.css']
+  styleUrls: ['./pronunciation.component.css'],
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('300ms ease-in', style({ opacity: 1 }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-out', style({ opacity: 0 }))
+      ])
+    ]),
+    trigger('slideUp', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(50px) scale(0.95)' }),
+        animate('400ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
+          style({ opacity: 1, transform: 'translateY(0) scale(1)' }))
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in', 
+          style({ opacity: 0, transform: 'translateY(30px) scale(0.98)' }))
+      ])
+    ])
+  ]
 })
 export class PronunciationComponent implements OnInit, OnDestroy {
   @ViewChild('videoEl') videoElRef?: ElementRef<HTMLVideoElement>;
@@ -106,6 +135,14 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   private lastVideoBlobUrl: string | null = null;
   shortfeedback: string = '';
 
+  // PHONEME DETAILS (for colored word + table)
+  phonemeDetails: PhonemeDetail[] = [];
+  studentPhonemes: string[] = [];
+  referencePhonemes: string[] = [];
+
+  // FEEDBACK MODAL
+  showFeedbackModal = false;
+
   // CANCEL / RESET CONTROL
   private cancelScoring$ = new Subject<void>();
   private recordRunId = 0;
@@ -135,6 +172,167 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { }
       this.lastVideoBlobUrl = null;
     }
+    if (this.recordedAudioUrl) {
+      try { URL.revokeObjectURL(this.recordedAudioUrl); } catch { }
+      this.recordedAudioUrl = null;
+    }
+  }
+
+  // ADD THIS METHOD - Play user's recorded pronunciation
+  playUserRecording(): void {
+    if (this.recordedAudioUrl) {
+      try {
+        const audio = new Audio(this.recordedAudioUrl);
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.error('Error playing user recording:', err);
+          this.shortfeedback = 'Unable to play recording. Please try again.';
+          this.cdr.detectChanges();
+        });
+      } catch (error) {
+        console.error('Error creating audio from recording:', error);
+      }
+    } else if (this.lastRecordedBlob) {
+      // Create URL from blob if not already created
+      try {
+        if (this.recordedAudioUrl) {
+          URL.revokeObjectURL(this.recordedAudioUrl);
+        }
+        this.recordedAudioUrl = URL.createObjectURL(this.lastRecordedBlob);
+        const audio = new Audio(this.recordedAudioUrl);
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.error('Error playing user recording:', err);
+        });
+      } catch (error) {
+        console.error('Error creating audio URL:', error);
+      }
+    } else {
+      console.warn('No recording available to play');
+      this.shortfeedback = 'No recording found. Please record your pronunciation first.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Toggle feedback modal
+  toggleFeedbackModal(): void {
+    this.showFeedbackModal = !this.showFeedbackModal;
+    try { this.cdr.detectChanges(); } catch { }
+  }
+
+  // Get score feedback message
+  getScoreFeedback(): string {
+    const score = this.score || 0;
+    if (score >= 90) return 'Excellent! Perfect pronunciation! 🌟';
+    if (score >= 80) return 'Great job! Very good pronunciation! 👏';
+    if (score >= 70) return 'Good! Keep practicing! 👍';
+    if (score >= 60) return 'Nice try! Practice more! 💪';
+    if (score >= 50) return 'Getting better! Keep going! 🎯';
+    return 'Keep practicing! You\'ll improve! 🚀';
+  }
+
+  // Get score CSS class
+  getScoreClass(): string {
+    const score = this.score || 0;
+    if (score >= 80) return 'excellent';
+    if (score >= 60) return 'good';
+    if (score >= 40) return 'fair';
+    return 'needs-work';
+  }
+
+  // Build colored letter segments from the target word and phoneme correctness
+  getColoredWordLetters(): { text: string; correct: boolean }[] {
+    const word = this.current.word.toLowerCase().replace(/\s+/g, '');
+    const details = this.phonemeDetails;
+
+    if (!details.length || !word) {
+      return [{ text: word, correct: true }];
+    }
+
+    const n = word.length;
+    const numPhonemes = details.length;
+    const segments: { text: string; correct: boolean }[] = [];
+    let letterIdx = 0;
+
+    for (let i = 0; i < numPhonemes; i++) {
+      const endIdx =
+        i === numPhonemes - 1
+          ? n
+          : Math.round(((i + 1) * n) / numPhonemes);
+      const text = word.slice(letterIdx, endIdx);
+      const correct = details[i]?.correct ?? true;
+      letterIdx = endIdx;
+
+      if (!text) continue;
+
+      // Merge adjacent segments with the same correctness
+      if (segments.length > 0 && segments[segments.length - 1].correct === correct) {
+        segments[segments.length - 1].text += text;
+      } else {
+        segments.push({ text, correct });
+      }
+    }
+
+    // Any remaining letters (edge case)
+    if (letterIdx < n) {
+      const tail = word.slice(letterIdx);
+      const last = segments[segments.length - 1];
+      if (last && !last.correct) {
+        last.text += tail;
+      } else {
+        segments.push({ text: tail, correct: false });
+      }
+    }
+
+    return segments;
+  }
+
+  // Get improvement tips based on score
+  getImprovementTips(): ImprovementTip[] {
+    const score = this.score || 0;
+    const tips: ImprovementTip[] = [];
+
+    if (score < 100) {
+      tips.push({
+        number: '1',
+        title: 'Listen Carefully',
+        description: 'Pay attention to the audio pronunciation and repeat it slowly.'
+      });
+    }
+
+    if (score < 85) {
+      tips.push({
+        number: '2',
+        title: 'Mouth Position',
+        description: 'Watch how the mouth moves in the video and copy the same position.'
+      });
+    }
+
+    if (score < 75) {
+      tips.push({
+        number: '3',
+        title: 'Slow Practice',
+        description: 'Practice saying the word slowly first, then gradually speed up.'
+      });
+    }
+
+    if (score < 65) {
+      tips.push({
+        number: '4',
+        title: 'Record & Compare',
+        description: 'Record yourself and compare it with the sample audio multiple times.'
+      });
+    }
+
+    if (tips.length === 0) {
+      tips.push({
+        number: '✓',
+        title: 'Perfect!',
+        description: 'You nailed it! Ready for the next word?'
+      });
+    }
+
+    return tips;
   }
 
   // Toggle recording state
@@ -238,6 +436,13 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     }
 
     this.lastRecordedBlob = blob;
+    
+    // Create URL for playback
+    if (this.recordedAudioUrl) {
+      try { URL.revokeObjectURL(this.recordedAudioUrl); } catch { }
+    }
+    this.recordedAudioUrl = URL.createObjectURL(blob);
+    
     this.isOscillating = true;
     try { this.cdr.detectChanges(); } catch { }
 
@@ -320,6 +525,9 @@ export class PronunciationComponent implements OnInit, OnDestroy {
         this.score = this.normalizeScore(res.score);
         this.shortfeedback = res.feedback;
         this.showResult = true;
+        this.phonemeDetails = res.phoneme_details || [];
+        this.studentPhonemes = res.student_phonemes || [];
+        this.referencePhonemes = res.reference_phonemes || [];
 
         if (res.videoBlobBase64) {
           const bytes = Uint8Array.from(atob(res.videoBlobBase64), c => c.charCodeAt(0));
@@ -429,6 +637,10 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     this.showVideo = false;
     this.videoSrc = '';
     this.shortfeedback = '';
+    this.showFeedbackModal = false;
+    this.phonemeDetails = [];
+    this.studentPhonemes = [];
+    this.referencePhonemes = [];
   }
 
   // Play sample audio for current word
@@ -535,6 +747,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     this.showResult = false;
     this.shortfeedback = '';
     this.lastRecordedBlob = null;
+    this.showFeedbackModal = false;
     if (this.recordedAudioUrl) {
       try { URL.revokeObjectURL(this.recordedAudioUrl); } catch { }
       this.recordedAudioUrl = null;

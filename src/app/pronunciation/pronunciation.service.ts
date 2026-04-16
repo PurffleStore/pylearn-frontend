@@ -3,11 +3,22 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface PhonemeDetail {
+  sound: string;
+  said: string;
+  correct: boolean;
+  tip: string;
+}
+
 export interface ScoreResponse {
   score: number;
   feedback: string;
   status?: string;
   videoBlobBase64?: string;
+  student_phonemes?: string[];
+  reference_phonemes?: string[];
+  phoneme_details?: PhonemeDetail[];
+  word?: string;
 }
 
 @Injectable({ providedIn: 'root' })
