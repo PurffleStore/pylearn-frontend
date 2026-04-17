@@ -1998,3 +1998,45 @@
 .ph-row-wrong {
   background: #fff8f5;
 }
+/* ==================== AUDIO BUTTON CLICK EFFECTS ==================== */
+
+.audio-play-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple effect on click */
+.audio-play-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0);
+  border-radius: inherit;
+  transition: background 0.15s ease;
+  pointer-events: none;
+}
+
+.audio-play-btn:active::after {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.audio-play-btn:active:not(:disabled) {
+  transform: scale(0.92);
+  box-shadow: 0 1px 4px rgba(58, 174, 168, 0.2);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.user-recording-btn:active:not(:disabled) {
+  box-shadow: 0 1px 4px rgba(240, 123, 72, 0.2);
+}
+
+/* "Pressed" flash animation triggered via JS class */
+@keyframes btnFlash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
+.audio-play-btn.btn-clicked {
+  animation: btnFlash 0.35s ease-out;
+}

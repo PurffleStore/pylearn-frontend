@@ -114,7 +114,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   private recordingStartedAt = 0;
   private hasSpoken = false;
 
-  private readonly silenceMs = 3000;
+  private readonly silenceMs = 1000;
   private readonly startSilenceMs = 3000;
   private readonly silenceThreshold = 0.01;
 
@@ -180,6 +180,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
 
   // ADD THIS METHOD - Play user's recorded pronunciation
   playUserRecording(): void {
+    this.flashButton('.user-recording-btn');
     if (this.recordedAudioUrl) {
       try {
         const audio = new Audio(this.recordedAudioUrl);
@@ -647,6 +648,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
 
   // Play sample audio for current word
   playWordAudio(): void {
+    this.flashButton('.correct-pronunciation-btn');
     const src = this.current?.audioSrc || this.getAudioSrcFromWord(this.current.word);
     if (!src) return;
     try {
@@ -733,7 +735,15 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     this.index--;
     this.resetAfterNavigation();
   }
-
+  private flashButton(selector: string): void {
+    const btn = document.querySelector(selector) as HTMLElement;
+    if (!btn) return;
+    btn.classList.remove('btn-clicked');
+    // Force reflow so removing+adding the class restarts the animation
+    void btn.offsetWidth;
+    btn.classList.add('btn-clicked');
+    setTimeout(() => btn.classList.remove('btn-clicked'), 400);
+  }
   // Go to next item
   next(): void {
     if (this.index >= this.items.length - 1) return;
