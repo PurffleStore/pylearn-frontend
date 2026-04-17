@@ -341,6 +341,8 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       this.stopRecording(false);
       return;
     }
+    // Stop any playing video before recording starts
+    this.resetVideoPlayerState();
     this.startPreRecordCountdown();
   }
 

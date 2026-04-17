@@ -23,7 +23,7 @@
          <div class="image-container">
           <button class="audio-btn"
                   (click)="playWordAudio()"
-                  [disabled]="isRecording || isCountingDown"
+                  [disabled]="isRecording || isCountingDown || isScoring || isPlayingVideo || isOscillating"
                   [attr.aria-label]="'Play pronunciation for ' + current.word"
                   type="button"
                   title="Click to hear the correct pronunciation"
@@ -72,7 +72,7 @@
           <button class="play-btn"
                   [class.playing]="isPlayingVideo"
                   (click)="toggleVideoPlay()"
-                  [disabled]="isRecording || isCountingDown"
+                  [disabled]="isRecording || isCountingDown || isScoring || isOscillating"
                   [attr.aria-label]="isPlayingVideo ? 'Pause pronunciation' : 'Play pronunciation'"
                   [attr.aria-pressed]="isPlayingVideo"
                   type="button"
