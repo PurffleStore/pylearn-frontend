@@ -17,8 +17,8 @@
         <span class="online-dot"></span>
       </div>
 
-      <p class="overlay-name">English Tutor</p>
-      <p class="overlay-subtitle">Your AI English Teacher is ready</p>
+      <p class="overlay-name">Subject Tutor</p>
+      <p class="overlay-subtitle">Your Teacher is ready</p>
 
       <!-- Start button -->
       <button class="overlay-start-btn"
@@ -29,6 +29,12 @@
       </button>
 
       <p class="overlay-hint">Video + chat will begin immediately</p>
+      <button class="overlay-home-btn"
+        (mousedown)="$event.preventDefault()"
+        (click)="goHome(); $event.stopPropagation()">
+  <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
+  Go Home
+</button>
     </div>
   </div>
 
@@ -146,15 +152,28 @@
                autocomplete="off" />
 
         <button class="icon-btn mic-btn"
-                title="Voice input"
-                (mousedown)="$event.preventDefault()"
-                (click)="toggleVoiceInput()"
-                [disabled]="isTyping || showOverlay"
-                [class.listening]="isListening">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z" />
-          </svg>
-        </button>
+        title="Voice input"
+        (mousedown)="$event.preventDefault()"
+        (click)="toggleVoiceInput()"
+        [disabled]="isTyping || showOverlay"
+        [class.listening]="isListening">
+
+  <!-- Mic icon — shown when NOT listening -->
+  <svg *ngIf="!isListening" viewBox="0 0 24 24">
+    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9
+             5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52
+             14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85
+             -.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91
+             5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43
+             5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+  </svg>
+
+  <!-- Stop / recording icon — shown WHILE listening -->
+  <svg *ngIf="isListening" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8" fill="currentColor"/>  <!-- solid red stop circle -->
+  </svg>
+
+</button>
 
         <button class="icon-btn send-btn"
                 title="Send"

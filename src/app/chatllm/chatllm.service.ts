@@ -9,8 +9,9 @@ export interface ChatResponse {
   reply: string;
   suggestions: string[];
   session_id: string;
-  video_key: string;
-  video_url: string;
+  video_url?: string;
+  video_key?: string;
+  video_keys: string[];   
 }
 
 export interface SuggestionsResponse {

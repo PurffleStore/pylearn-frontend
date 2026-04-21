@@ -71,6 +71,8 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
   recognition: any = null;
   isListening = false;
   speechSupported = false;
+  private videoQueue: string[] = [];
+  private isPlayingQueue = false;
 
   constructor(
     private chatService: ChatService,
@@ -96,6 +98,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
         this.playVideoByKey(key);
       }
     });
+    this.initSpeechRecognition();
   }
 
   ngAfterViewInit(): void {
@@ -383,43 +386,54 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     this.shouldScroll = true;
   }
 
-  sendMessage(text: string): void {
-    if (!text?.trim() || this.isTyping) return;
+ sendMessage(text: string): void {
+  if (!text?.trim() || this.isTyping) return;
 
-    this.messages.push({
-      text: text.trim(),
-      hasTimings: false,
-      role: 'user',
-      time: this.getTime()
-    });
+  this.messages.push({
+    text: text.trim(), hasTimings: false,
+    role: 'user', time: this.getTime()
+  });
 
-    this.userInput = '';
-    this.isTyping = true;
-    this.shouldScroll = true;
+  this.userInput = '';
+  this.isTyping = true;
+  this.shouldScroll = true;
+  setTimeout(() => this.focusInput(), 50);
 
-    setTimeout(() => this.focusInput(), 50);
+  this.chatService.sendMessage(text.trim()).subscribe({
+    next: (res: ChatResponse) => {
+      this.isTyping = false;
+      this.suggestions = res.suggestions || [];
 
-    this.chatService.sendMessage(text.trim()).subscribe({
-      next: (res: ChatResponse) => {
-        this.isTyping = false;
+      const replyVideoKey = res.video_key || res.video_url || '';
 
-        const replyVideoKey = res.video_key || res.video_url || '';
+      // ── Detect multi-topic reply (split by ---)
+      const parts = res.reply.split(/\n---\n/).map((p: string) => p.trim()).filter(Boolean);
+
+      if (parts.length > 1 && Array.isArray(res.video_keys) && res.video_keys.length > 1) {
+        // Multi-topic: add each part as its own message with its own videoKey
+        this.videoQueue = [];
+        parts.forEach((part: string, i: number) => {
+          const vKey = res.video_keys[i] || '';
+          this.addBotMessage(part, vKey);
+          if (vKey) this.videoQueue.push(vKey);
+        });
+        this.playVideoQueue();
+
+      } else {
+        // Single topic — original behaviour
         this.addBotMessage(res.reply, replyVideoKey);
-        this.suggestions = res.suggestions || [];
-
-        if (replyVideoKey) {
-          this.playMessageVideo(replyVideoKey);
-        }
-
-        this.focusInput();
-      },
-      error: () => {
-        this.isTyping = false;
-        this.addBotMessage('Could not reach the server. Make sure Flask is running on port 5000.');
-        this.focusInput();
+        if (replyVideoKey) this.playMessageVideo(replyVideoKey);
       }
-    });
-  }
+
+      this.focusInput();
+    },
+    error: () => {
+      this.isTyping = false;
+      this.addBotMessage('Could not reach the server. Make sure Flask is running on port 5000.');
+      this.focusInput();
+    }
+  });
+}
 
   playMessageVideo(videoKey: string): void {
     if (!videoKey) return;
@@ -480,19 +494,144 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
   }
 
   toggleVoiceInput(): void {
-    if (!this.speechSupported) {
-      this.addBotMessage('Voice input is not supported in this browser.');
-      this.focusInput();
-      return;
-    }
-
-    if (this.isListening) {
-      this.recognition.stop();
-    } else {
-      this.userInput = '';
-      this.recognition.start();
-    }
-
+  if (!this.speechSupported) {
+    this.addBotMessage('Voice input is not supported in this browser.');
     this.focusInput();
+    return;
   }
+
+  if (this.isListening) {
+    this.isListening = false;        // ← set false IMMEDIATELY before stop()
+    this.recognition.stop();
+    this.cdr.detectChanges();        // ← force icon update right away
+  } else {
+    this.userInput = '';
+    this.recognition.start();
+  }
+}
+
+  private initSpeechRecognition(): void {
+  const SpeechRecognition =
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
+
+  if (!SpeechRecognition) { return; }   // browser doesn't support it
+
+  this.speechSupported = true;
+  this.recognition = new SpeechRecognition();
+  this.recognition.lang = 'en-US';
+  this.recognition.interimResults = false;   // shows words live as you speak
+  this.recognition.continuous = true;       // stops after a pause
+
+  this.recognition.onstart  = () => { this.isListening = true;  this.cdr.detectChanges(); };
+  this.recognition.onend    = () => { this.isListening = false; this.cdr.detectChanges(); };
+  this.recognition.onerror  = () => { this.isListening = false; this.cdr.detectChanges(); };
+
+ this.recognition.onresult = (event: any) => {
+  let transcript = '';
+  for (let i = 0; i < event.results.length; i++) {
+    if (event.results[i].isFinal) {
+      transcript += event.results[i][0].transcript + ' ';
+    }
+  }
+  if (transcript.trim()) {
+    this.userInput = transcript.trim();
+    this.cdr.detectChanges();
+  }
+};
+
+this.recognition.onerror = (event: any) => {
+  // 'no-speech' and 'audio-capture' are non-fatal — keep listening
+  if (event.error === 'no-speech' || event.error === 'audio-capture') {
+    return;
+  }
+  // Fatal errors — stop properly
+  this.isListening = false;
+  this.cdr.detectChanges();
+};
+
+this.recognition.onend = () => {
+  // If we're supposed to still be listening, restart automatically
+  if (this.isListening) {
+    this.recognition.start();   // ← auto-restart keeps mic alive
+  } else {
+    this.cdr.detectChanges();
+  }
+};
+}
+
+private playVideoQueue(): void {
+  if (this.isPlayingQueue || this.videoQueue.length === 0) return;
+
+  this.isPlayingQueue = true;
+  const key = this.videoQueue.shift()!;
+
+  const video = this.tutorVideo?.nativeElement;
+  if (!video) { this.isPlayingQueue = false; return; }
+
+  const url = this.chatService.resolveVideoUrl(key);
+
+  // Find the matching bot message for this key
+  let msgIndex = -1;
+  for (let i = this.messages.length - 1; i >= 0; i--) {
+    if (this.messages[i].role === 'bot' && this.messages[i].videoKey === key) {
+      msgIndex = i;
+      break;
+    }
+  }
+
+  this.removeTimeUpdateListener();
+  this.currentHighlightMsgIndex = msgIndex;
+  this.lastQuestionVideoKey = key;
+
+  video.loop = false;
+  video.src = url;
+  video.muted = this.isMuted;
+  this.isActivePlaying = true;
+  this.isVideoPaused = false;
+  this.showPoster = false;
+
+  // Attach word-highlight listener for this message
+  if (msgIndex >= 0) {
+    this.timeUpdateHandler = () => {
+      const t = video.currentTime;
+      const container = document.querySelector(`[data-msg-index="${msgIndex}"]`);
+      if (!container) return;
+      container.querySelectorAll<HTMLElement>('.timed-word').forEach(span => {
+        const start = parseFloat(span.getAttribute('data-start') ?? '-1');
+        const end   = parseFloat(span.getAttribute('data-end')   ?? '-1');
+        if (start >= 0 && t >= start && t < end) span.classList.add('word-active');
+        else span.classList.remove('word-active');
+      });
+    };
+    video.addEventListener('timeupdate', this.timeUpdateHandler);
+  }
+
+  video.play().catch(() => {});
+
+  video.onended = () => {
+    video.onended = null;
+
+    // Clear highlights for finished message
+    if (msgIndex >= 0) {
+      document.querySelector(`[data-msg-index="${msgIndex}"]`)
+        ?.querySelectorAll<HTMLElement>('.word-active')
+        .forEach(el => el.classList.remove('word-active'));
+    }
+
+    this.removeTimeUpdateListener();
+    this.isPlayingQueue = false;
+
+    if (this.videoQueue.length > 0) {
+      // Small pause between videos so it feels natural
+      setTimeout(() => this.playVideoQueue(), 600);
+    } else {
+      this.playBlink();
+      this.speechBubbleText = 'Click ▶ to replay the answer!';
+      this.focusInput();
+    }
+
+    this.cdr.detectChanges();
+  };
+}
 }
