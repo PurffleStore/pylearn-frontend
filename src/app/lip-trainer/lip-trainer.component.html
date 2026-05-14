@@ -1,11 +1,52 @@
 <div class="pp-page">
-  <div class="pp-header">
-    <h1>Lip Trainer</h1>
-  </div>
 
-  <div class="pp-main">
-    <!-- LEFT SECTION - Same as pronunciation component -->
+  <!-- ============ TOP BAR ============ -->
+  <header class="pp-topbar">
+    <div class="brand">
+     
+      <div class="brand-text">
+        <span class="brand-eyebrow">Pronunciation Lab</span>
+        <h1>Lip Trainer</h1>
+      </div>
+    </div>
+
+    <div class="topbar-meta">
+      <!-- Playing state chip -->
+      <div class="position-chip" [class.is-playing]="isVideoPlaying && !isVideoPaused">
+        <span class="chip-eq" *ngIf="isVideoPlaying && !isVideoPaused" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </span>
+        <span class="chip-dot" *ngIf="!isVideoPlaying || isVideoPaused"></span>
+        <span class="chip-label">
+          <ng-container [ngSwitch]="playingPhase">
+            <span *ngSwitchCase="'short-a'">Short A &nbsp;/æ/</span>
+            <span *ngSwitchCase="'long-a'">Long A &nbsp;/e&#618;/</span>
+            <span *ngSwitchCase="'sound'">Playing</span>
+          </ng-container>
+        </span>
+      </div>
+
+      <!-- Case badge: LONG / SHORT - only show for vowels -->
+      <div class="case-badge" [class.is-upper]="isUppercaseGroup" *ngIf="isCurrentVowel">
+        <span>{{ isUppercaseGroup ? 'LONG' : 'SHORT' }}</span>
+      </div>
+
+      <!-- Step counter -->
+      <div class="step-badge">
+        <span class="step-current">{{ (index % 26) + 1 }}</span>
+        <span class="step-divider">/</span>
+        <span class="step-total">26</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN ============ -->  <div class="pp-main">
+
+    <!-- LEFT: Practice Word -->
     <div class="pp-left">
+      <div class="section-tag">
+        <span class="tag-dot"></span> Practice Word
+      </div>
       <div class="word-card">
         <div class="word-img-wrap">
           <div class="video-frame square">
@@ -16,107 +57,241 @@
         </div>
 
         <div class="word-text">{{ current.word }}</div>
-
-        <div class="phonetic-pill">
-          {{ current.phonetics }}
-        </div>
+        <div class="phonetic-pill">{{ current.phonetics }}</div>
 
         <div class="image-container">
-          <img src="assets/pronunciation/audio.png" alt="Play audio" class="round-image" (click)="playWordAudio()">
+          <span class="btn-with-rings">
+            <span class="ring" aria-hidden="true"></span>
+            <span class="ring" aria-hidden="true"></span>
+            <img src="assets/pronunciation/audio.png"
+                 alt="Play audio"
+                 class="round-image"
+                 [class.disabled]="isVideoPlaying"
+                 [style.pointer-events]="isVideoPlaying ? 'none' : 'auto'"
+                 [style.opacity]="isVideoPlaying ? '0.5' : '1'"
+                 (click)="!isVideoPlaying && playWordAudio()">
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- CENTER SECTION - Modified for lip trainer -->
+    <!-- CENTER: Mouth Video Player -->
     <div class="pp-center">
-      <div class="word-card center-card">
-        <div class="center-media">
-          <!-- Default image shown when no video is playing -->
-          <img *ngIf="!isVideoPlaying" 
-               [src]="currentDisplayImage" 
-               class="media-rounded default-image"
-               alt="Lip position guide">
+      <div class="section-tag">
+        <span class="tag-dot tag-dot-accent"></span> Lip Movement
+      </div>
 
-          <!-- Video element shown when playing -->
-          <video *ngIf="isVideoPlaying"
-                 #videoEl
-                 [src]="currentVideoSrc"
-                 class="media-rounded"
+      <div class="word-card center-card" [class.is-playing]="isVideoPlaying && !isVideoPaused">
+        <div class="center-media">
+          <span class="aura" aria-hidden="true"></span>
+
+          <!-- Now-playing badge -->
+          <span class="now-playing" *ngIf="isVideoPlaying && !isVideoPaused" aria-live="polite">
+            <span class="np-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <ng-container [ngSwitch]="playingPhase">
+              <span *ngSwitchCase="'short-a'">Short A &nbsp;/æ/</span>
+              <span *ngSwitchCase="'long-a'">Long A &nbsp;/e&#618;/</span>
+              <span *ngSwitchDefault>Playing</span>
+            </ng-container>
+          </span>
+
+          <!-- Mouth video -->
+          <video #centerVideo
+                 class="media-rounded mouth-video"
                  (ended)="onVideoEnded()"
-                 autoplay
                  muted
-                  height="469" width="521">
+                 playsinline>
             Your browser does not support the video tag.
           </video>
+
+        </div><!-- /center-media -->
+
+        <!-- Phase labels — only for letter A/a -->
+       
+        <div class="phase-label-bar" [class.phase-label-hidden]="!isLetterA">
+          <!-- Uppercase A: Shows only Long A -->
+          <ng-container *ngIf="isUpperCaseA">
+            <span class="phase-tag long-a" [class.active]="playingPhase === 'long-a'">
+              <span class="pt-icon">&#9651;</span>
+              Long&nbsp;A &nbsp;/e&#618;/ &mdash; &ldquo;angel&rdquo;
+            </span>
+          </ng-container>
+          
+          <!-- Lowercase a: Shows only Short A -->
+          <ng-container *ngIf="!isUpperCaseA">
+            <span class="phase-tag short-a" [class.active]="playingPhase === 'short-a'">
+              <span class="pt-icon">&#9651;</span>
+              Short&nbsp;A &nbsp;/æ/ &mdash; &ldquo;apple&rdquo;
+            </span>
+          </ng-container>
         </div>
 
-       <div class="controls-row">
-  <!-- Normal Video Button (Play/Pause Toggle) -->
-  <img class="listen-img"
-       [src]="normalVideoIcon"
-       [alt]="isVideoPlaying && currentPlayType === 'normal' && !isVideoPaused ? 'Pause video' : 'Play video'"
-       role="button"
-       tabindex="0"
-       (click)="onNormalVideoClick()"
-       (keydown.enter)="onNormalVideoClick()" />
+        <!-- Controls -->
+        <div class="controls-row">
+          <!-- Play / Pause button -->
+          <span class="btn-with-rings" [class.is-playing]="isVideoPlaying && !isVideoPaused">
+            <span class="ring" aria-hidden="true"></span>
+            <span class="ring" aria-hidden="true"></span>
+            <img class="listen-img"
+                 [src]="playIcon"
+                 [alt]="isVideoPaused ? 'Resume' : isVideoPlaying ? 'Pause' : 'Play'"
+                 role="button"
+                 tabindex="0"
+                 (click)="onPlayClick()"
+                 (keydown.enter)="onPlayClick()"/>
+          </span>
 
-  <!-- Muted Video Button (Play/Pause Toggle) -->
-  <img class="listen-img mute-btn"
-       [src]="mutedVideoIcon"
-       [alt]="isVideoPlaying && currentPlayType === 'muted' && !isVideoPaused ? 'Pause muted video' : 'Play muted video'"
-       role="button"
-       tabindex="0"
-       (click)="onMutedVideoClick()"
-       (keydown.enter)="onMutedVideoClick()" />
-</div>
+          <!-- Case toggle: A–Z / a–z - only show for vowels -->
+          <div class="case-toggle-group" aria-label="Letter case" *ngIf="isCurrentVowel">
+            <button class="case-toggle-btn"
+                    [class.active]="isUppercaseGroup"
+                    (click)="!isUppercaseGroup && toggleCase()"
+                    [attr.aria-pressed]="isUppercaseGroup"
+                    title="Uppercase A–Z">
+              A&ndash;Z
+            </button>
+            <button class="case-toggle-btn"
+                    [class.active]="!isUppercaseGroup"
+                    (click)="isUppercaseGroup && toggleCase()"
+                    [attr.aria-pressed]="!isUppercaseGroup"
+                    title="Lowercase a–z">
+              a&ndash;z
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /center-card -->
+    </div><!-- /pp-center -->
+
+    <!-- RIGHT: Letter Info -->
+    <div class="pp-right">
+      <div class="section-tag">
+        <span class="tag-dot"></span> Letter Info
       </div>
-    </div>
 
-    <!-- RIGHT SECTION - Modified with arrow controls -->
-<div class="pp-right">
-  <!-- First Lip Navigation -->
-  <div class="lip-nav">
-    
-    <button class="arrow-up" (click)="setLipPosition('left')" [class.active]="lipPosition === 'left'">
-      ▲
-    </button>
-    <button class="arrow-straight" (click)="setLipPosition('straight')" [class.active]="lipPosition === 'straight'">
-      ●
-    </button>
-    <button class="arrow-down" (click)="setLipPosition('right')" [class.active]="lipPosition === 'right'">
-      ▼
-    </button>
+      <div class="letter-info-card">
+
+        <!-- Big letter badge -->
+        <div class="big-letter-wrap">
+          <span class="big-letter"
+                [class.is-vowel]="isVowel(current.letter)"
+                [class.is-upper]="isUppercase(current.letter)">
+            {{ current.letter }}
+          </span>
+          <span class="letter-word-tag">{{ current.word }}</span>
+        </div>
+
+        <!-- A-sounds legend (visible for A / a only) -->
+        <div class="a-legend" *ngIf="isLetterA">
+          <div class="a-legend-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
+
+          <!-- Uppercase A: Shows Long A only -->
+          <ng-container *ngIf="isUpperCaseA">
+            <div class="a-sound-row" [class.playing]="playingPhase === 'long-a'">
+              <span class="sound-num">1</span>
+              <div class="sound-detail">
+                <span class="sound-name">Long A</span>
+                <span class="sound-ipa">/e&#618;/</span>
+                <span class="sound-ex">&ldquo;angel&rdquo;</span>
+              </div>
+            </div>
+            <p class="a-hint">Press Play to hear the Long A sound.</p>
+          </ng-container>
+
+          <!-- Lowercase a: Shows Short A only -->
+          <ng-container *ngIf="!isUpperCaseA">
+            <div class="a-sound-row" [class.playing]="playingPhase === 'short-a'">
+              <span class="sound-num">1</span>
+              <div class="sound-detail">
+                <span class="sound-name">Short A</span>
+                <span class="sound-ipa">/æ/</span>
+                <span class="sound-ex">&ldquo;apple&rdquo;</span>
+              </div>
+            </div>
+            <p class="a-hint">Press Play to hear the Short A sound.</p>
+          </ng-container>
+        </div>
+
+        <!-- Generic vowel note (E, I, O, U) -->
+        <div class="vowel-note" *ngIf="isVowel(current.letter) && !isLetterA">
+          <div class="note-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
+          <div class="note-row">
+            <span class="note-num">V</span>
+            <div class="note-detail">
+              <span class="note-name">Vowel</span>
+              <span class="note-ipa">{{ current.phonetics }}</span>
+              <span class="note-ex">&ldquo;{{ current.word }}&rdquo;</span>
+            </div>
+          </div>
+          <p class="note-hint">Press Play to hear the sound.</p>
+        </div>
+
+        <!-- Consonant note (non-vowel letters) -->
+        <div class="consonant-note" *ngIf="!isVowel(current.letter)">
+          <div class="note-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
+          <div class="note-row">
+            <span class="note-num">C</span>
+            <div class="note-detail">
+              <span class="note-name">Consonant</span>
+              <span class="note-ipa">{{ current.phonetics }}</span>
+              <span class="note-ex">&ldquo;{{ current.word }}&rdquo;</span>
+            </div>
+          </div>
+          <p class="note-hint">Press Play to hear the sound.</p>
+        </div>
+
+      </div><!-- /letter-info-card -->
+    </div><!-- /pp-right -->
+
+  </div><!-- /pp-main -->
+
+  <!-- ============ STEPPER ============ -->
+  <div class="stepper-wrap">
+    <nav class="pp-stepper"
+         [attr.aria-label]="isUppercaseGroup ? 'Uppercase letters A–Z' : 'Lowercase letters a–z'">
+
+      <!-- Uppercase letters -->
+      <ng-container *ngIf="isUppercaseGroup">
+        <button *ngFor="let item of items.slice(0,26); let i = index"
+                type="button"
+                class="step-dot"
+                [class.is-current]="i === index"
+                [class.is-done]="i < index"
+                [class.is-vowel]="isVowel(item.letter)"
+                [attr.aria-label]="'Letter ' + item.letter + ' — ' + item.word"
+                [attr.aria-current]="i === index ? 'true' : null"
+                [attr.title]="item.letter + ' · ' + item.word"
+                (click)="goTo(i)">
+          <span>{{ item.letter }}</span>
+        </button>
+      </ng-container>
+
+      <!-- Lowercase letters -->
+      <ng-container *ngIf="!isUppercaseGroup">
+        <button *ngFor="let item of items.slice(26,52); let i = index"
+                type="button"
+                class="step-dot"
+                [class.is-current]="i + 26 === index"
+                [class.is-done]="i + 26 < index"
+                [class.is-vowel]="isVowel(item.letter)"
+                [attr.aria-label]="'Letter ' + item.letter + ' — ' + item.word"
+                [attr.aria-current]="i + 26 === index ? 'true' : null"
+                [attr.title]="item.letter + ' · ' + item.word"
+                (click)="goTo(i + 26)">
+          <span>{{ item.letter }}</span>
+        </button>
+      </ng-container>
+
+    </nav>
   </div>
 
-  <!-- NEW Container - Display only, no controls -->
-  <div class="new-container">
-    <div class="new-center-media">
-      <!-- Default image shown when no video is playing -->
-      <img *ngIf="!isNewVideoPlaying" 
-           [src]="newCurrentDisplayImage" 
-           class="new-default-image"
-           alt="New lip position guide">
-      
-      <!-- Video element shown when playing -->
-      <video *ngIf="isNewVideoPlaying"
-             #newVideoEl
-             [src]="newCurrentVideoSrc"
-             class="new-media-rounded"
-             (ended)="onNewVideoEnded()"
-             autoplay
-             muted>
-        Your browser does not support the video tag.
-      </video>
-    </div>
+  <!-- Keyboard hints -->
+  <div class="kbd-hints" aria-label="Keyboard shortcuts">
+    <span class="kbd-group"><kbd>Space</kbd><em>play / pause</em></span>
+    <span class="kbd-sep" aria-hidden="true"></span>
+    <span class="kbd-group"><kbd>&larr;</kbd><kbd>&rarr;</kbd><em>letter</em></span>
   </div>
 
-  <!-- Letter navigation container -->
-  <div class="container">
-    <button class="arrow left" (click)="prev()" [disabled]="index === 0">&#8249;</button>
-    <span class="center-text">{{ current.letter }}</span>
-    <button class="arrow right" (click)="next()" [disabled]="index === items.length - 1">&#8250;</button>
-  </div>
 </div>
-  </div>
-</div>
-<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">×</button>
+
+<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">&#215;</button>

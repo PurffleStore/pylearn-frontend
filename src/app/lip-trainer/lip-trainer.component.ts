@@ -1,12 +1,43 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+
+
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 
 interface PracticeItem {
-  letter: string;
-  word: string;
+  letter: string;       // 'A' or 'a'
+  word: string;         // display word  e.g. 'Apple' / 'apple'
   phonetics: string;
-  imgSrc: string;
+  imgSrc: string;       // word animation video (left panel)
   audioSrc: string;
+  videoSrc: string;     // main mouth video
+}
+
+// ─── Asset base paths ───────────────────────────────────────────────────────
+const MAIN  = 'assets/lip-trainer/main/';   // real mouth videos
+const ANIM  = 'assets/pronunciation/animvideo/';
+const AUDIO = 'assets/pronunciation/audio/';
+
+/**
+ * Build one PracticeItem.
+ * @param ltr      Display letter ('A' or 'a')
+ * @param word     Word shown in the practice card (title-cased for uppercase, lower for lowercase)
+ * @param ph       IPA phonetics
+ * @param vid      Filename in MAIN/ for video
+ * @param animFile Override for the left-panel animation mp4 (defaults to word+'.mp4')
+ */
+function mkItem(
+  ltr: string, word: string, ph: string,
+  vid: string, animFile?: string
+): PracticeItem {
+  const slug = (animFile ?? word).toLowerCase().replace(/\s+/g, '-');
+  return {
+    letter:   ltr,
+    word,
+    phonetics: ph,
+    imgSrc:   ANIM  + slug + '.mp4',
+    audioSrc: AUDIO + slug + '.mp3',
+    videoSrc:  MAIN + vid,
+  };
 }
 
 @Component({
@@ -14,364 +45,271 @@ interface PracticeItem {
   templateUrl: './lip-trainer.component.html',
   styleUrls: ['./lip-trainer.component.css']
 })
-export class LipTrainerComponent {
-  @ViewChild('videoEl') videoElRef?: ElementRef<HTMLVideoElement>;
- @ViewChild('newVideoEl') newVideoElRef?: ElementRef<HTMLVideoElement>;
-  // Data items - same as pronunciation component
+export class LipTrainerComponent implements AfterViewInit, OnDestroy {
+
+  @ViewChild('centerVideo') centerVideoRef?: ElementRef<HTMLVideoElement>;
+
+  // ── Item list: 26 uppercase then 26 lowercase ────────────────────────────
   items: PracticeItem[] = [
-    { letter: 'A', word: 'Apple', phonetics: '/ˈæpəl/', imgSrc: 'assets/pronunciation/animvideo/apple.mp4', audioSrc: 'assets/pronunciation/audio/apple.mp3' },
-    { letter: 'B', word: 'Ball', phonetics: '/bɔːl/', imgSrc: 'assets/pronunciation/animvideo/ball.mp4', audioSrc: 'assets/pronunciation/audio/ball.mp3' },
-    { letter: 'C', word: 'Cat', phonetics: '/kæt/', imgSrc: 'assets/pronunciation/animvideo/cat.mp4', audioSrc: 'assets/pronunciation/audio/cat.mp3' },
-    { letter: 'D', word: 'Dog', phonetics: '/dɒɡ/', imgSrc: 'assets/pronunciation/animvideo/dog.mp4', audioSrc: 'assets/pronunciation/audio/dog.mp3' },
-    { letter: 'E', word: 'Egg', phonetics: '/eɡ/', imgSrc: 'assets/pronunciation/animvideo/egg.mp4', audioSrc: 'assets/pronunciation/audio/egg.mp3' },
-    { letter: 'F', word: 'Fish', phonetics: '/fɪʃ/', imgSrc: 'assets/pronunciation/animvideo/fish.mp4', audioSrc: 'assets/pronunciation/audio/fish.mp3' },
-    { letter: 'G', word: 'Grapes', phonetics: '/ɡreɪps/', imgSrc: 'assets/pronunciation/animvideo/grapes.mp4', audioSrc: 'assets/pronunciation/audio/grapes.mp3' },
-    { letter: 'H', word: 'Hat', phonetics: '/hæt/', imgSrc: 'assets/pronunciation/animvideo/hat.mp4', audioSrc: 'assets/pronunciation/audio/hat.mp3' },
-    { letter: 'I', word: 'Ice cream', phonetics: '/ˈaɪs ˌkriːm/', imgSrc: 'assets/pronunciation/animvideo/icecream.mp4', audioSrc: 'assets/pronunciation/audio/icecream.mp3' },
-    { letter: 'J', word: 'Jar', phonetics: '/dʒɑːr/', imgSrc: 'assets/pronunciation/animvideo/jar.mp4', audioSrc: 'assets/pronunciation/audio/jar.mp3' },
-    { letter: 'K', word: 'Kite', phonetics: '/kaɪt/', imgSrc: 'assets/pronunciation/animvideo/kite.mp4', audioSrc: 'assets/pronunciation/audio/kite.mp3' },
-    { letter: 'L', word: 'Lion', phonetics: '/ˈlaɪən/', imgSrc: 'assets/pronunciation/animvideo/lion.mp4', audioSrc: 'assets/pronunciation/audio/lion.mp3' },
-    { letter: 'M', word: 'Moon', phonetics: '/muːn/', imgSrc: 'assets/pronunciation/animvideo/moon.mp4', audioSrc: 'assets/pronunciation/audio/moon.mp3' },
-    { letter: 'N', word: 'Nest', phonetics: '/nest/', imgSrc: 'assets/pronunciation/animvideo/nest.mp4', audioSrc: 'assets/pronunciation/audio/nest.mp3' },
-    { letter: 'O', word: 'Orange', phonetics: '/ˈɒrɪndʒ/', imgSrc: 'assets/pronunciation/animvideo/orange.mp4', audioSrc: 'assets/pronunciation/audio/orange.mp3' },
-    { letter: 'P', word: 'Pig', phonetics: '/pɪɡ/', imgSrc: 'assets/pronunciation/animvideo/pig.mp4', audioSrc: 'assets/pronunciation/audio/pig.mp3' },
-    { letter: 'Q', word: 'Queen', phonetics: '/kwiːn/', imgSrc: 'assets/pronunciation/animvideo/queen.mp4', audioSrc: 'assets/pronunciation/audio/queen.mp3' },
-    { letter: 'R', word: 'Rabbit', phonetics: '/ˈræbɪt/', imgSrc: 'assets/pronunciation/animvideo/rabbit.mp4', audioSrc: 'assets/pronunciation/audio/rabbit.mp3' },
-    { letter: 'S', word: 'Sun', phonetics: '/sʌn/', imgSrc: 'assets/pronunciation/animvideo/sun.mp4', audioSrc: 'assets/pronunciation/audio/sun.mp3' },
-    { letter: 'T', word: 'Tree', phonetics: '/triː/', imgSrc: 'assets/pronunciation/animvideo/tree.mp4', audioSrc: 'assets/pronunciation/audio/tree.mp3' },
-    { letter: 'U', word: 'Umbrella', phonetics: '/ʌmˈbrelə/', imgSrc: 'assets/pronunciation/animvideo/umbrella.mp4', audioSrc: 'assets/pronunciation/audio/umbrella.mp3' },
-    { letter: 'V', word: 'Van', phonetics: '/væn/', imgSrc: 'assets/pronunciation/animvideo/van.mp4', audioSrc: 'assets/pronunciation/audio/van.mp3' },
-    { letter: 'W', word: 'Watch', phonetics: '/wɒtʃ/', imgSrc: 'assets/pronunciation/animvideo/watch.mp4', audioSrc: 'assets/pronunciation/audio/watch.mp3' },
-    { letter: 'X', word: 'Xylophone', phonetics: '/ˈzaɪləfəʊn/', imgSrc: 'assets/pronunciation/animvideo/xylophone.mp4', audioSrc: 'assets/pronunciation/audio/xylophone.mp3' },
-    { letter: 'Y', word: 'Yarn', phonetics: '/jɑːn/', imgSrc: 'assets/pronunciation/animvideo/yarn.mp4', audioSrc: 'assets/pronunciation/audio/yarn.mp3' },
-    { letter: 'Z', word: 'Zebra', phonetics: '/ˈzebrə/', imgSrc: 'assets/pronunciation/animvideo/zebra.mp4', audioSrc: 'assets/pronunciation/audio/zebra.mp3' }
+
+    // ── Uppercase A – Z ─────────────────────────────────────────────────────
+    // Uppercase A: Default = "Angel" (Long-A sound only)
+    mkItem('A', 'Angel',     '/eɪndʒəl/',       'angel.mp4'),
+    mkItem('B', 'Ball',      '/bɔːl/',         'ball.mp4'),
+    mkItem('C', 'Cat',       '/kæt/',          'cat.mp4'),
+    mkItem('D', 'Dog',       '/dɒɡ/',          'dog.mp4'),
+    mkItem('E', 'Egg',       '/eɡ/',           'egg.mp4'),
+    mkItem('F', 'Fish',      '/fɪʃ/',          'fish.mp4'),
+    mkItem('G', 'Grapes',    '/ɡreɪps/',       'grapes.mp4'),
+    mkItem('H', 'Hat',       '/hæt/',          'hat.mp4'),
+    mkItem('I', 'Ice cream', '/ˈaɪs ˌkriːm/', 'ice-cream.mp4', 'icecream'),
+    mkItem('J', 'Jar',       '/dʒɑːr/',        'jar.mp4'),
+    mkItem('K', 'Kite',      '/kaɪt/',         'kite.mp4'),
+    mkItem('L', 'Lion',      '/ˈlaɪən/',       'lion.mp4'),
+    mkItem('M', 'Moon',      '/muːn/',         'moon.mp4'),
+    mkItem('N', 'Nest',      '/nest/',         'nest.mp4'),
+    mkItem('O', 'Orange',    '/ˈɒrɪndʒ/',      'orange.mp4'),
+    mkItem('P', 'Pig',       '/pɪɡ/',          'pig.mp4'),
+    mkItem('Q', 'Queen',     '/kwiːn/',        'queen.mp4'),
+    mkItem('R', 'Rabbit',    '/ˈræbɪt/',       'rabbit.mp4'),
+    mkItem('S', 'Sun',       '/sʌn/',          'sun.mp4'),
+    mkItem('T', 'Tree',      '/triː/',         'tree.mp4'),
+    mkItem('U', 'Umbrella',  '/ʌmˈbrelə/',     'umbrella.mp4'),
+    mkItem('V', 'Van',       '/væn/',          'van.mp4'),
+    mkItem('W', 'Watch',     '/wɒtʃ/',         'watch.mp4'),
+    mkItem('X', 'Xylophone', '/ˈzaɪləfəʊn/',  'xylophone.mp4'),
+    mkItem('Y', 'Yarn',      '/jɑːn/',         'yarn.mp4'),
+    mkItem('Z', 'Zebra',     '/ˈzebrə/',       'zebra.mp4'),
+
+    // ── Lowercase a – z ─────────────────────────────────────────────────────
+    // Lowercase a: Default = "apple" (Short-A sound only)
+    mkItem('a', 'apple',     '/ˈæpəl/',         'apple.mp4'),
+    mkItem('b', 'ball',      '/bɔːl/',         'ball.mp4'),
+    mkItem('c', 'cat',       '/kæt/',          'cat.mp4'),
+    mkItem('d', 'dog',       '/dɒɡ/',          'dog.mp4'),
+    mkItem('e', 'egg',       '/eɡ/',           'egg.mp4'),
+    mkItem('f', 'fish',      '/fɪʃ/',          'fish.mp4'),
+    mkItem('g', 'grapes',    '/ɡreɪps/',       'grapes.mp4'),
+    mkItem('h', 'hat',       '/hæt/',          'hat.mp4'),
+    mkItem('i', 'ice cream', '/ˈaɪs ˌkriːm/', 'ice-cream.mp4', 'icecream'),
+    mkItem('j', 'jar',       '/dʒɑːr/',        'jar.mp4'),
+    mkItem('k', 'kite',      '/kaɪt/',         'kite.mp4'),
+    mkItem('l', 'lion',      '/ˈlaɪən/',       'lion.mp4'),
+    mkItem('m', 'moon',      '/muːn/',         'moon.mp4'),
+    mkItem('n', 'nest',      '/nest/',         'nest.mp4'),
+    mkItem('o', 'orange',    '/ˈɒrɪndʒ/',      'orange.mp4'),
+    mkItem('p', 'pig',       '/pɪɡ/',          'pig.mp4'),
+    mkItem('q', 'queen',     '/kwiːn/',        'queen.mp4'),
+    mkItem('r', 'rabbit',    '/ˈræbɪt/',       'rabbit.mp4'),
+    mkItem('s', 'sun',       '/sʌn/',          'sun.mp4'),
+    mkItem('t', 'tree',      '/triː/',         'tree.mp4'),
+    mkItem('u', 'umbrella',  '/ʌmˈbrelə/',     'umbrella.mp4'),
+    mkItem('v', 'van',       '/væn/',          'van.mp4'),
+    mkItem('w', 'watch',     '/wɒtʃ/',         'watch.mp4'),
+    mkItem('x', 'xylophone', '/ˈzaɪləfəʊn/',  'xylophone.mp4'),
+    mkItem('y', 'yarn',      '/jɑːn/',         'yarn.mp4'),
+    mkItem('z', 'zebra',     '/ˈzebrə/',       'zebra.mp4'),
   ];
 
+  // ── State ────────────────────────────────────────────────────────────────
   index = 0;
-  lipPosition: 'straight' | 'left' | 'right' = 'straight';
+
   isVideoPlaying = false;
-  currentVideoSrc = '';
-  isVideoPaused = false;
-  playIconUrl = 'assets/pronunciation/play.png';
-  pauseIconUrl = 'assets/pronunciation/pause.png';
-  muteIconUrl = 'assets/lip-trainer/newmute.png';
-  currentPlayType: 'normal' | 'muted' = 'normal';
-isNewVideoPlaying = false;
-  newCurrentVideoSrc = '';
-  isNewVideoPaused = false;
-  constructor(
-    public dialogRef: MatDialogRef<LipTrainerComponent>,
-  ) { }
+  isVideoPaused  = false;
 
-  get current(): PracticeItem {
-    return this.items[this.index];
+  /**
+   * For Uppercase A: 'long-a' = angel.mp4
+   * For Lowercase a: 'short-a' = apple.mp4
+   * For other letters: 'sound' = any non-A letter
+   * null = idle / stopped
+   */
+  playingPhase: 'short-a' | 'long-a' | 'sound' | null = null;
+
+  // Speed — only normal (1×) remains
+  speedOptions: number[] = [1];
+  playbackSpeed = 1;
+  playIconUrl   = 'assets/pronunciation/play.png';
+  pauseIconUrl  = 'assets/pronunciation/pause.png';
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  get current(): PracticeItem { return this.items[this.index]; }
+  get isUppercaseGroup(): boolean { return this.index < 26; }
+  get isLetterA(): boolean {
+    const l = this.current.letter;
+    return l === 'A' || l === 'a';
+  }
+  get playIcon(): string {
+    return (this.isVideoPlaying && !this.isVideoPaused) ? this.pauseIconUrl : this.playIconUrl;
   }
 
-  // Get the current display image based on lip position
-  get currentDisplayImage(): string {
-    switch (this.lipPosition) {
-      case 'left':
-        return 'assets/lip-trainer/default-image/default_left.png';
-      case 'right':
-        return 'assets/lip-trainer/default-image/default_right.png';
-      default:
-        return 'assets/lip-trainer/default-image/default_straight.png';
-    }
+  // Helper to determine if current A is uppercase or lowercase
+  get isUpperCaseA(): boolean {
+    return this.current.letter === 'A';
   }
 
-  // Get icon for normal video button based on state
-  get normalVideoIcon(): string {
-    if (this.isVideoPlaying && this.currentPlayType === 'normal') {
-      // If normal video is playing/paused, toggle between play/pause
-      return this.isVideoPaused ? this.playIconUrl : this.pauseIconUrl;
-    }
-    // Default state - show play icon
-    return this.playIconUrl;
+  // Check if current letter is a vowel (A, E, I, O, U) - case insensitive
+  get isCurrentVowel(): boolean {
+    return this.isVowel(this.current.letter);
   }
 
-  // Get icon for muted video button based on state
-get mutedVideoIcon(): string {
-  if (this.isVideoPlaying && this.currentPlayType === 'muted') {   
-    return this.isVideoPaused ? this.muteIconUrl : this.pauseIconUrl;
+  isVowel(letter: string): boolean {
+    return ['A','E','I','O','U','a','e','i','o','u'].includes(letter ?? '');
   }
-  // Default state - show mute icon (newmute.png)
-  return this.muteIconUrl;
-}
-
-  // Set lip position
-  setLipPosition(position: 'straight' | 'left' | 'right'): void {
-    this.lipPosition = position;
-    this.stopVideoAndReset();
-  }
-
   
+  isUppercase(letter: string): boolean {
+    return letter === letter.toUpperCase() && letter !== letter.toLowerCase();
+  }
 
-  // Get display text for current lip position
-  getLipPositionText(): string {
-    switch (this.lipPosition) {
-      case 'left': return 'Left';
-      case 'right': return 'Right';
-      default: return 'Straight';
+  // ── Constructor ──────────────────────────────────────────────────────────
+  constructor(public dialogRef: MatDialogRef<LipTrainerComponent>) {}
+
+  ngAfterViewInit(): void {
+    this.loadIdleFrame();
+  }
+
+  ngOnDestroy(): void { this.hardStop(); }
+
+  // ── Core video helper ────────────────────────────────────────────────────
+  private playSrc(src: string, onReady: (v: HTMLVideoElement) => void): void {
+    const v = this.centerVideoRef?.nativeElement;
+    if (!v) return;
+
+    // Cancel any previous pending callback first
+    v.onloadeddata = null;
+    v.src = src;
+
+    // IMPORTANT: attach the handler BEFORE v.load() so that fast-loading
+    // or already-cached videos (e.g. ball.mp4, cat.mp4) don't fire
+    // loadeddata before the listener is registered.
+    v.onloadeddata = () => {
+      v.onloadeddata = null;
+      onReady(v);
+    };
+
+    v.load();
+  }
+
+  // ── Idle frame (default state) ───────────────────────────────────────────
+  private loadIdleFrame(): void {
+    this.playSrc(this.current.videoSrc, v => {
+      v.currentTime = 0.01;
+      v.pause();
+    });
+  }
+
+  // ── Playback controls ────────────────────────────────────────────────────
+  onPlayClick(): void {
+    if (this.isVideoPlaying) {
+      this.isVideoPaused ? this.resumeVideo() : this.pauseVideo();
+    } else {
+      this.startVideo();
     }
   }
 
- 
+  startVideo(): void {
+    this.isVideoPlaying = true;
+    this.isVideoPaused  = false;
 
- 
-
-  // Get video filename based on lip position and mute status
-  private getVideoNameForCurrentPosition(isMuted: boolean): string {
-    const word = this.current.word.toLowerCase().replace(/\s+/g, '-');
-    
-    if (isMuted) {
-      switch (this.lipPosition) {
-        case 'left':
-          return `${word}_mute_left.mp4`;
-        case 'right':
-          return `${word}_mute_right.mp4`;
-        default:
-          return `${word}_mute_straight.mp4`;
+    if (this.isLetterA) {
+      // Set appropriate phase based on case
+      if (this.isUpperCaseA) {
+        this.playingPhase = 'long-a';  // Uppercase A: Long-A sound
+      } else {
+        this.playingPhase = 'short-a'; // Lowercase a: Short-A sound
       }
     } else {
-      switch (this.lipPosition) {
-        case 'left':
-          return `${word}_left.mp4`;
-        case 'right':
-          return `${word}_right.mp4`;
-        default:
-          return `${word}_straight.mp4`;
-      }
+      this.playingPhase = 'sound';
     }
+    
+    this.playSrc(this.current.videoSrc, v => {
+      v.currentTime = 0;
+      v.playbackRate = this.playbackSpeed;
+      v.play().catch(e => console.warn('play error:', e));
+    });
   }
 
-  
-  // Play normal video
-  playVideo(): void {
-    const videoName = this.getVideoNameForCurrentPosition(false);
-    this.playVideoFile(videoName, 'normal');
+  pauseVideo(): void {
+    this.centerVideoRef?.nativeElement?.pause();
+    this.isVideoPaused = true;
   }
-  
-  // Play muted video
-  playMutedVideo(): void {
-    const videoName = this.getVideoNameForCurrentPosition(true);
-    this.playVideoFile(videoName, 'muted');
-  }
-  
- 
 
-  // Play sample audio for current word
+  resumeVideo(): void {
+    const v = this.centerVideoRef?.nativeElement;
+    if (v) { v.playbackRate = this.playbackSpeed; v.play().catch(e => console.warn(e)); }
+    this.isVideoPaused = false;
+  }
+
+  onVideoEnded(): void {
+    // Just stop playback, don't play any second sound
+    this.isVideoPlaying = false;
+    this.isVideoPaused  = false;
+    this.playingPhase   = null;
+    // Video stays on last frame
+  }
+
+  private hardStop(): void {
+    const v = this.centerVideoRef?.nativeElement;
+    if (v) { v.onloadeddata = null; v.pause(); }
+    this.isVideoPlaying = false;
+    this.isVideoPaused  = false;
+    this.playingPhase   = null;
+  }
+
+  // ── Audio ────────────────────────────────────────────────────────────────
   playWordAudio(): void {
+    if (this.isVideoPlaying) return;
     const src = this.current?.audioSrc;
     if (!src) return;
-    try {
-      const audio = new Audio(src);
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-    } catch {}
+    console.log('Playing audio:', src);
+    try { new Audio(src).play().catch(() => {}); } catch { /* noop */ }
   }
 
-  // Navigate to previous item
-  prev(): void {
-    if (this.index <= 0) return;
-    this.index--;
-    this.resetToStraight();
+  // ── Speed ────────────────────────────────────────────────────────────────
+  changePlaybackSpeed(speed: number): void {
+    this.playbackSpeed = speed;
+    const v = this.centerVideoRef?.nativeElement;
+    if (v) v.playbackRate = speed;
   }
 
-  // Navigate to next item
-  next(): void {
-    if (this.index >= this.items.length - 1) return;
-    this.index++;
-    this.resetToStraight();
+  // ── Navigation ───────────────────────────────────────────────────────────
+  goTo(i: number): void {
+    if (i < 0 || i >= this.items.length || i === this.index) return;
+    this.hardStop();
+    this.index = i;
+    setTimeout(() => this.loadIdleFrame(), 50);
   }
 
-  // Get new display image based on lip position
-  get newCurrentDisplayImage(): string {
-    switch (this.lipPosition) {
-      case 'left':
-        return 'assets/lip-trainer/default-image/new_default_left.png';
-      case 'right':
-        return 'assets/lip-trainer/default-image/new_default_right.png';
-      default:
-        return 'assets/lip-trainer/default-image/new_default_straight.png';
-    }
-  }
+  prev(): void { this.goTo(this.index - 1); }
+  next(): void { this.goTo(this.index + 1); }
 
-  // Get new video filename based on lip position and mute status
-  private getNewVideoNameForCurrentPosition(isMuted: boolean): string {
-    const word = this.current.word.toLowerCase().replace(/\s+/g, '-');
+  toggleCase(): void {
+    // Only allow toggle for vowel letters (A, E, I, O, U)
+    if (!this.isCurrentVowel) return;
     
-    if (isMuted) {
-      switch (this.lipPosition) {
-        case 'left':
-          return `new_${word}_mute_left.mp4`;
-        case 'right':
-          return `new_${word}_mute_right.mp4`;
-        default:
-          return `new_${word}_mute_straight.mp4`;
-      }
+    if (this.isUppercaseGroup) {
+      this.goTo(this.index + 26);
     } else {
-      switch (this.lipPosition) {
-        case 'left':
-          return `new_${word}_left.mp4`;
-        case 'right':
-          return `new_${word}_right.mp4`;
-        default:
-          return `new_${word}_straight.mp4`;
-      }
+      this.goTo(this.index - 26);
     }
   }
 
-  // Modified playVideoFile to also play new video
-  private playVideoFile(videoName: string, playType: 'normal' | 'muted'): void {
-    // Stop any currently playing videos
-    this.stopVideoAndReset();
-    this.stopNewVideoAndReset();
-    
-    // Set video source and play original video
-    this.currentVideoSrc = `assets/lip-trainer/${videoName}`;
-    this.isVideoPlaying = true;
-    this.currentPlayType = playType;
-    this.isVideoPaused = false;
-    
-    // Get and play new video
-    const newVideoName = this.getNewVideoNameForCurrentPosition(playType === 'muted');
-    this.newCurrentVideoSrc = `assets/lip-trainer/${newVideoName}`;
-    this.isNewVideoPlaying = true;
-    
-    setTimeout(() => {
-      // Play original video
-      const video = this.videoElRef?.nativeElement;
-      if (video) {
-        video.load();
-        video.play().catch(error => {
-          console.error('Error playing video:', error);
-          this.onVideoEnded();
-        });
-      }
-      
-      // Play new video
-      const newVideo = this.newVideoElRef?.nativeElement;
-      if (newVideo) {
-        newVideo.load();
-        newVideo.play().catch(error => {
-          console.error('Error playing new video:', error);
-          this.onNewVideoEnded();
-        });
-      }
-    }, 0);
-  }
+  // ── Keyboard ─────────────────────────────────────────────────────────────
+  @HostListener('document:keydown', ['$event'])
+  handleKeydown(e: KeyboardEvent): void {
+    const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
 
-  // Modified onNormalVideoClick to control both videos
-  onNormalVideoClick(): void {
-    const video = this.videoElRef?.nativeElement;
-    const newVideo = this.newVideoElRef?.nativeElement;
-    
-    // If no video playing OR different type is playing
-    if (!this.isVideoPlaying || this.currentPlayType !== 'normal') {
-      this.playVideo();
-      return;
-    }
-    
-    // Video exists and is of correct type, toggle play/pause for both
-    if (video && newVideo) {
-      if (video.paused) {
-        // Resume both videos
-        video.play().catch(error => {
-          console.error('Error resuming video:', error);
-        });
-        newVideo.play().catch(error => {
-          console.error('Error resuming new video:', error);
-        });
-        this.isVideoPaused = false;
-        this.isNewVideoPaused = false;
-      } else {
-        // Pause both videos
-        video.pause();
-        newVideo.pause();
-        this.isVideoPaused = true;
-        this.isNewVideoPaused = true;
-      }
+    switch (e.key) {
+      case ' ':
+      case 'Spacebar':  this.onPlayClick();            e.preventDefault(); break;
+      case 'ArrowRight': this.next();                  e.preventDefault(); break;
+      case 'ArrowLeft':  this.prev();                  e.preventDefault(); break;
     }
   }
 
-  // Modified onMutedVideoClick to control both videos
-  onMutedVideoClick(): void {
-    const video = this.videoElRef?.nativeElement;
-    const newVideo = this.newVideoElRef?.nativeElement;
-    
-    // If no video playing OR different type is playing
-    if (!this.isVideoPlaying || this.currentPlayType !== 'muted') {
-      this.playMutedVideo();
-      return;
-    }
-    
-    // Video exists and is of correct type, toggle play/pause for both
-    if (video && newVideo) {
-      if (video.paused) {
-        // Resume both videos
-        video.play().catch(error => {
-          console.error('Error resuming video:', error);
-        });
-        newVideo.play().catch(error => {
-          console.error('Error resuming new video:', error);
-        });
-        this.isVideoPaused = false;
-        this.isNewVideoPaused = false;
-      } else {
-        // Pause both videos
-        video.pause();
-        newVideo.pause();
-        this.isVideoPaused = true;
-        this.isNewVideoPaused = true;
-      }
-    }
-  }
-
-  // Modified stopVideoAndReset to also stop new video
-  private stopVideoAndReset(): void {
-    const video = this.videoElRef?.nativeElement;
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
-    this.isVideoPlaying = false;
-    this.isVideoPaused = false;
-    this.currentVideoSrc = '';
-  }
-
-  // Stop new video and reset
-  private stopNewVideoAndReset(): void {
-    const newVideo = this.newVideoElRef?.nativeElement;
-    if (newVideo) {
-      newVideo.pause();
-      newVideo.currentTime = 0;
-    }
-    this.isNewVideoPlaying = false;
-    this.isNewVideoPaused = false;
-    this.newCurrentVideoSrc = '';
-  }
-
-  // Modified onVideoEnded to also handle new video
-  onVideoEnded(): void {
-    this.stopVideoAndReset();
-    this.stopNewVideoAndReset();
-  }
-
-  // Handle new video ended event
-  onNewVideoEnded(): void {
-    // If new video ended, also stop original video
-    this.onVideoEnded();
-  }
-
-  // Modified resetToStraight
-  resetToStraight(): void {
-    this.lipPosition = 'straight';
-    this.stopVideoAndReset();
-    this.stopNewVideoAndReset();
-  }
-  // Close popup
+  // ── Dialog ───────────────────────────────────────────────────────────────
   closePopup(): void {
-    this.stopVideoAndReset();
+    this.hardStop();
     this.dialogRef.close();
   }
 }
