@@ -1,6 +1,10 @@
-<div class="pp-page">
+<div class="pp-page" [class.dashboard-open]="showDashboard">
   <div class="pp-header">
     <h1>Pronunciation Practice</h1>
+    <!-- FEATURE 2: Parent Dashboard Button -->
+    <button class="parent-dash-btn" (click)="showDashboard = true" type="button" title="Parent view — see progress for all words">
+      👨‍👩‍👧 Parent
+    </button>
   </div>
 
   <div class="pp-main">
@@ -28,17 +32,9 @@
                   type="button"
                   title="Click to hear the correct pronunciation"
                   [attr.data-word]="current.word">
-            <!-- <span class="audio-btn-content">
-              <svg class="audio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M15.54 8.46a6.5 6.5 0 0 1 0 9.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-              </svg>
-              <span class="audio-text">Listen</span>
-            </span>
-            <span class="btn-ripple"></span> -->
-             <img _ngcontent-ng-c238312912="" src="assets/pronunciation/audio.png" alt="Play audio" class="round-image">
+             <img src="assets/pronunciation/audio.png" alt="Play audio" class="round-image">
           </button>
-        </div> 
+        </div>
         <!-- <div _ngcontent-ng-c238312912="" class="image-container">
           <img _ngcontent-ng-c238312912="" src="assets/pronunciation/audio.png" alt="Play audio" class="round-image"></div> -->
       </div>
@@ -115,14 +111,13 @@
     <div class="feedback-section">
       <button class="feedback-trigger-btn"
               (click)="toggleFeedbackModal()"
-              [disabled]="score === 0 || isRecording || isCountingDown"
-              [class.enabled]="score > 0 && !isRecording && !isCountingDown"
+              [disabled]="!showResult || isRecording || isCountingDown || isScoring || isOscillating"
+              [class.enabled]="showResult && !isRecording && !isCountingDown && !isScoring && !isOscillating"
               type="button"
-              [attr.aria-label]="score > 0 ? 'View detailed feedback' : 'Waiting for feedback'"
-              [attr.title]="score > 0 ? 'Click to see detailed pronunciation feedback' : 'Record and get feedback first'">
+              aria-label="View detailed feedback"
+              title="View detailed pronunciation feedback">
         <span class="feedback-btn-icon">📋</span>
         <span class="feedback-btn-text">Details</span>
-        
         <span class="btn-glow"></span>
       </button>
 
@@ -154,13 +149,23 @@
         </div>
 
         <div class="modal-content">
+
+          <!-- ZERO SCORE MISTAKE BANNER -->
+          <div class="zero-score-banner" *ngIf="score === 0">
+            <span class="zero-score-icon">⚠️</span>
+            <div class="zero-score-text">
+              <strong>Score: 0 — Let's see what went wrong</strong>
+              <p>Check the phoneme breakdown below to find the sounds you missed.</p>
+            </div>
+          </div>
+
           <!-- SCORE SECTION -->
           <div class="score-section">
             <div class="score-display">
               <div class="score-circle">
                 <svg class="score-ring" viewBox="0 0 120 120">
                   <circle class="score-ring-bg" cx="60" cy="60" r="54"></circle>
-                  <circle class="score-ring-progress" 
+                  <circle class="score-ring-progress"
                           cx="60" cy="60" r="54"
                           [style.strokeDashoffset]="340 - (score * 3.4)">
                   </circle>
@@ -169,6 +174,28 @@
               </div>
               <div class="score-text">
                 <div class="score-label">Your Score</div>
+                <!-- ⭐ STAR RATING (5 stars) -->
+                <div class="modal-stars" *ngIf="score > 0">
+                  <span class="modal-star"
+                        [class.lit]="starCount >= 1"
+                        [class.pop]="starsAnimating && starCount >= 1">★</span>
+                  <span class="modal-star"
+                        [class.lit]="starCount >= 2"
+                        [class.pop]="starsAnimating && starCount >= 2"
+                        style="animation-delay:0.18s">★</span>
+                  <span class="modal-star"
+                        [class.lit]="starCount >= 3"
+                        [class.pop]="starsAnimating && starCount >= 3"
+                        style="animation-delay:0.36s">★</span>
+                  <span class="modal-star"
+                        [class.lit]="starCount >= 4"
+                        [class.pop]="starsAnimating && starCount >= 4"
+                        style="animation-delay:0.54s">★</span>
+                  <span class="modal-star"
+                        [class.lit]="starCount >= 5"
+                        [class.pop]="starsAnimating && starCount >= 5"
+                        style="animation-delay:0.72s">★</span>
+                </div>
                 <div class="score-description" [ngClass]="getScoreClass()">
                   {{ getScoreFeedback() }}
                 </div>
@@ -212,6 +239,7 @@
                   <ng-container *ngIf="!row.correct">
                     <span class="ph-wrong-text">/{{ row.said || '?' }}/</span>
                     <p class="ph-tip" *ngIf="row.tip">This is a /{{ row.sound }}/ sound. {{ row.tip }}.</p>
+
                   </ng-container>
                 </div>
               </div>
@@ -226,6 +254,14 @@
                 <h3>Feedback</h3>
               </div>
               <p class="feedback-text">{{ shortfeedback }}</p>
+              <!-- Second video clip sentence (shown when two clips were played) -->
+              <p class="feedback-text feedback-text--clip2" *ngIf="videoClipText2">
+                {{ videoClipText2 }}
+              </p>
+              <!-- Smart phoneme tip (only shown when different from video text) -->
+              <p class="phoneme-tip-text" *ngIf="phonemeTip">
+                💡 {{ phonemeTip }}
+              </p>
             </div>
 
             <!-- AUDIO PLAYBACK SECTION -->
@@ -239,9 +275,6 @@
                           type="button"
                           [attr.aria-label]="'Play correct pronunciation of ' + current.word"
                           title="Click to hear correct pronunciation">
-                    <!-- <svg class="audio-icon-small" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg> -->
                     <span class="btn-label">🔊</span>
                   </button>
                 </div>
@@ -294,6 +327,45 @@
     </div>
 
     <div class="pp-right">
+      <!-- ⭐ STAR RATING DISPLAY (5 stars) -->
+      <div class="star-display" *ngIf="score > 0">
+        <span class="gauge-star"
+              [class.lit]="starCount >= 1"
+              [class.pop]="starsAnimating && starCount >= 1">★</span>
+        <span class="gauge-star"
+              [class.lit]="starCount >= 2"
+              [class.pop]="starsAnimating && starCount >= 2"
+              style="animation-delay:0.18s">★</span>
+        <span class="gauge-star"
+              [class.lit]="starCount >= 3"
+              [class.pop]="starsAnimating && starCount >= 3"
+              style="animation-delay:0.36s">★</span>
+        <span class="gauge-star"
+              [class.lit]="starCount >= 4"
+              [class.pop]="starsAnimating && starCount >= 4"
+              style="animation-delay:0.54s">★</span>
+        <span class="gauge-star"
+              [class.lit]="starCount >= 5"
+              [class.pop]="starsAnimating && starCount >= 5"
+              style="animation-delay:0.72s">★</span>
+      </div>
+      <div class="star-display star-empty" *ngIf="score === 0">
+        <span class="gauge-star">★</span>
+        <span class="gauge-star">★</span>
+        <span class="gauge-star">★</span>
+        <span class="gauge-star">★</span>
+        <span class="gauge-star">★</span>
+      </div>
+
+      <!-- 🏅 NEW BADGE NOTIFICATION -->
+      <div class="badge-popup" *ngIf="newBadge" [@slideUp]>
+        <div class="badge-popup-icon">🏅</div>
+        <div class="badge-popup-text">
+          <strong>Badge Earned!</strong><br>
+          <span>{{ newBadge }} Mastered!</span>
+        </div>
+      </div>
+
       <div class="gauge-wrapper">
         <div class="gauge">
           <div class="gauge-arc"></div>
@@ -340,8 +412,61 @@
   </div>
 </div>
 
-<button aria-label="Close pronunciation practice" 
-        class="user-guide-close-icon" 
+<button aria-label="Close pronunciation practice"
+        class="user-guide-close-icon"
         (click)="closePopup()"
         type="button"
         title="Close this dialog">×</button>
+
+<!-- FEATURE 2: PARENT DASHBOARD MODAL -->
+<div class="dash-overlay" *ngIf="showDashboard" (click)="showDashboard = false"></div>
+<div class="dash-modal" *ngIf="showDashboard">
+  <div class="dash-header">
+    <span class="dash-title">📊 Parent Dashboard — Word Progress</span>
+    <button class="dash-close" (click)="showDashboard = false" type="button">×</button>
+  </div>
+  <div class="dash-legend">
+    <span class="dl-item"><span class="dl-dot" style="background:#43a047"></span>Mastered (≥85%)</span>
+    <span class="dl-item"><span class="dl-dot" style="background:#f5a623"></span>Improving (60–84%)</span>
+    <span class="dl-item"><span class="dl-dot" style="background:#ef5350"></span>Needs Practice (&lt;60%)</span>
+    <span class="dl-item"><span class="dl-dot" style="background:#bdbdbd"></span>Not tried</span>
+  </div>
+  <div class="dash-grid">
+    <div class="dash-card"
+         *ngFor="let stat of dashboardStats"
+         [style.border-top]="'4px solid ' + stat.color">
+      <div class="dash-emoji">{{ stat.emoji }}</div>
+      <div class="dash-letter" [style.color]="stat.color">{{ stat.item.letter }}</div>
+      <div class="dash-word">{{ stat.item.word }}</div>
+      <div class="dash-score" [style.color]="stat.color">
+        {{ stat.attempts > 0 ? stat.bestScore + '%' : '—' }}
+      </div>
+      <!-- Stars per word (5-star scale) -->
+      <div class="dash-stars" *ngIf="stat.attempts > 0">
+        <span [class.dash-star-lit]="stat.bestScore > 0">★</span>
+        <span [class.dash-star-lit]="stat.bestScore >= 50">★</span>
+        <span [class.dash-star-lit]="stat.bestScore >= 70">★</span>
+        <span [class.dash-star-lit]="stat.bestScore >= 85">★</span>
+        <span [class.dash-star-lit]="stat.bestScore >= 95">★</span>
+      </div>
+      <div class="dash-badge-icon" *ngIf="stat.hasBadge" title="Mastery Badge earned!">🏅</div>
+      <div class="dash-tries" *ngIf="stat.attempts > 0">{{ stat.attempts }} {{ stat.attempts === 1 ? 'try' : 'tries' }}</div>
+      <div class="dash-tries gray" *ngIf="stat.attempts === 0">Not tried yet</div>
+    </div>
+  </div>
+
+  <!-- 🏅 BADGE GALLERY -->
+  <div class="badge-gallery" *ngIf="earnedBadges.length > 0">
+    <div class="badge-gallery-title">🏅 Mastery Badges Earned</div>
+    <div class="badge-gallery-grid">
+      <div class="badge-item" *ngFor="let b of earnedBadges">
+        <div class="badge-medal">🏅</div>
+        <div class="badge-letter">{{ b.letter }}</div>
+        <div class="badge-word">{{ b.word }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="badge-gallery empty-badges" *ngIf="earnedBadges.length === 0">
+    <span>🏅 Score 80%+ twice in a row on any word to earn a Mastery Badge!</span>
+  </div>
+</div>

@@ -135,10 +135,33 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   private lastVideoBlobUrl: string | null = null;
   shortfeedback: string = '';
 
+  // ATTEMPT TRACKING (for near_miss, perfect_first_try, improvement detection)
+  private attemptCounts: Record<string, number> = {};
+  private lastScores: Record<string, number> = {};
+
+  // FEATURE 2: PARENT DASHBOARD
+  showDashboard = false;
+
+  // FEATURE: STAR RATING
+  starsAnimating = false;
+  private starsTimer?: number;
+
+  // FEATURE: CELEBRATION
+  private celebrationTimer?: number;
+
+  // FEATURE: BADGES
+  newBadge: string | null = null;
+
   // PHONEME DETAILS (for colored word + table)
   phonemeDetails: PhonemeDetail[] = [];
   studentPhonemes: string[] = [];
   referencePhonemes: string[] = [];
+
+  // PHONEME TIP (smart secondary tip from backend, shown below the video feedback text)
+  phonemeTip: string = '';
+
+  // SECOND CLIP TEXT (teaching sentence from the second video clip, if two clips were played)
+  videoClipText2: string = '';
 
   // FEEDBACK MODAL
   showFeedbackModal = false;
@@ -168,6 +191,8 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     this.stopTracks();
     this.safeStopRecorder();
     this.teardownAudioGraph();
+    if (this.starsTimer) clearTimeout(this.starsTimer);
+    if (this.celebrationTimer) clearTimeout(this.celebrationTimer);
     if (this.lastVideoBlobUrl) {
       try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { }
       this.lastVideoBlobUrl = null;
@@ -336,6 +361,197 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     return tips;
   }
 
+  // ══════════════════════════════════════════════
+  // ⭐ STAR RATING
+  // ══════════════════════════════════════════════
+  get starCount(): number {
+    if (this.score >= 95) return 5;
+    if (this.score >= 85) return 4;
+    if (this.score >= 70) return 3;
+    if (this.score >= 50) return 2;
+    if (this.score > 0)   return 1;
+    return 0;
+  }
+
+  private triggerStars(): void {
+    if (this.score <= 85) return;
+    this.starsAnimating = true;
+    try { this.cdr.detectChanges(); } catch { }
+    if (this.starsTimer) clearTimeout(this.starsTimer);
+    this.starsTimer = window.setTimeout(() => {
+      this.starsAnimating = false;
+      try { this.cdr.detectChanges(); } catch { }
+    }, 1800);
+  }
+
+  // ══════════════════════════════════════════════
+  // 🎉 CELEBRATION ANIMATION
+  // ══════════════════════════════════════════════
+  private triggerCelebration(score: number): void {
+    if (score < 50) return; // 5-star scale: confetti from 2 stars (50%) upward
+
+    const isEpic  = score >= 85;
+    const count   = isEpic ? 110 : 55;
+    const epicColors = ['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98FF98','#FF9FF3','#FFB347'];
+    const goodColors = ['#3aaea8','#f07b48','#FFD700','#a8d5b5','#80CBC4','#B2EBF2'];
+    const colors  = isEpic ? epicColors : goodColors;
+    const shapes  = ['50%', '0%', '2px 10px', '10px 2px', '50% 0%', '0% 50%'];
+
+    // Inject keyframes once
+    if (!document.getElementById('cc-kf')) {
+      const s = document.createElement('style');
+      s.id = 'cc-kf';
+      s.textContent = `
+        @keyframes ccFall {
+          0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+          80%  { opacity: 0.85; }
+          100% { transform: translateY(112vh) rotate(var(--r,360deg)); opacity: 0; }
+        }
+        @keyframes ccBurst {
+          0%   { transform: translate(-50%,-55%) scale(0) rotate(-15deg); opacity: 0; }
+          45%  { transform: translate(-50%,-55%) scale(1.6) rotate(8deg);  opacity: 1; }
+          75%  { transform: translate(-50%,-55%) scale(1.2) rotate(-3deg); opacity: 1; }
+          100% { transform: translate(-50%,-55%) scale(0.9) rotate(0);    opacity: 0; }
+        }
+        @keyframes ccEncourage {
+          0%   { transform: translate(-50%,-55%) scale(0); opacity: 0; }
+          50%  { transform: translate(-50%,-55%) scale(1.2); opacity: 1; }
+          100% { transform: translate(-50%,-55%) scale(1);   opacity: 0; }
+        }`;
+      document.head.appendChild(s);
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;';
+    document.body.appendChild(overlay);
+
+    // Centre emoji burst
+    const burst = document.createElement('div');
+    if (isEpic) {
+      burst.textContent = '⭐⭐⭐';
+      burst.style.cssText = `position:absolute;top:50%;left:50%;
+        font-size:clamp(48px,7vw,90px);white-space:nowrap;
+        animation:ccBurst 1.4s ease-out forwards;pointer-events:none;`;
+    } else {
+      burst.textContent = '👍';
+      burst.style.cssText = `position:absolute;top:50%;left:50%;
+        font-size:clamp(60px,8vw,100px);
+        animation:ccEncourage 1s ease-out forwards;pointer-events:none;`;
+    }
+    overlay.appendChild(burst);
+
+    // Confetti pieces
+    for (let i = 0; i < count; i++) {
+      const el    = document.createElement('div');
+      const color = colors[i % colors.length];
+      const size  = 6 + Math.random() * 13;
+      const left  = Math.random() * 100;
+      const delay = Math.random() * 2;
+      const dur   = 2.8 + Math.random() * 2;
+      const rot   = Math.round(Math.random() * 720 - 360);
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      el.style.cssText =
+        `position:absolute;width:${size}px;height:${size}px;background:${color};` +
+        `left:${left}%;top:-${size + 10}px;border-radius:${shape};` +
+        `animation:ccFall ${dur}s ease-in ${delay}s forwards;`;
+      el.style.setProperty('--r', `${rot}deg`);
+      overlay.appendChild(el);
+    }
+
+    const ttl = isEpic ? 5500 : 4000;
+    if (this.celebrationTimer) clearTimeout(this.celebrationTimer);
+    this.celebrationTimer = window.setTimeout(() => {
+      if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    }, ttl);
+  }
+
+  // ══════════════════════════════════════════════
+  // FEATURE 2: PARENT DASHBOARD
+  // ══════════════════════════════════════════════
+  get dashboardStats(): Array<{
+    item: PracticeItem;
+    bestScore: number;
+    lastScore: number;
+    attempts: number;
+    level: string;
+    color: string;
+    emoji: string;
+    hasBadge: boolean;
+  }> {
+    return this.items.map(item => {
+      const wk = item.word.toLowerCase().replace(/\s+/g, '_');
+      const raw = localStorage.getItem(`pp_${wk}`);
+      const stored = raw ? JSON.parse(raw) : null;
+      const bestScore: number = stored?.bestScore ?? 0;
+      const lastScore: number = stored?.lastScore ?? 0;
+      const attempts: number = stored?.attempts ?? 0;
+      const hasBadge = localStorage.getItem(`pp_badge_${wk}`) === '1';
+
+      let level = 'Not tried';
+      let color = '#bdbdbd';
+      let emoji = '⬜';
+
+      if (attempts > 0) {
+        if (bestScore >= 85) { level = 'Mastered!'; color = '#43a047'; emoji = '🏆'; }
+        else if (bestScore >= 60) { level = 'Improving'; color = '#f5a623'; emoji = '📈'; }
+        else { level = 'Needs Practice'; color = '#ef5350'; emoji = '💪'; }
+      }
+
+      return { item, bestScore, lastScore, attempts, level, color, emoji, hasBadge };
+    });
+  }
+
+  get earnedBadges(): Array<{ word: string; letter: string }> {
+    return this.items
+      .filter(item => {
+        const k = `pp_badge_${item.word.toLowerCase().replace(/\s+/g, '_')}`;
+        return localStorage.getItem(k) === '1';
+      })
+      .map(item => ({ word: item.word, letter: item.letter }));
+  }
+
+  private saveWordStat(word: string, score: number): void {
+    try {
+      const key = `pp_${word.toLowerCase().replace(/\s+/g, '_')}`;
+      const raw = localStorage.getItem(key);
+      const stored = raw ? JSON.parse(raw) : { bestScore: 0, lastScore: 0, attempts: 0 };
+      stored.attempts = (stored.attempts || 0) + 1;
+      stored.lastScore = score;
+      stored.bestScore = Math.max(stored.bestScore || 0, score);
+      localStorage.setItem(key, JSON.stringify(stored));
+    } catch { }
+  }
+
+  // ══════════════════════════════════════════════
+  // 🏅 WORD MASTERY BADGE
+  // ══════════════════════════════════════════════
+  private checkBadge(word: string, score: number): void {
+    try {
+      const wk       = word.toLowerCase().replace(/\s+/g, '_');
+      const badgeKey = `pp_badge_${wk}`;
+      if (localStorage.getItem(badgeKey) === '1') return; // already earned
+
+      const consecKey = `pp_consec_${wk}`;
+      const consec    = parseInt(localStorage.getItem(consecKey) || '0', 10);
+
+      if (score >= 80) {
+        const next = consec + 1;
+        localStorage.setItem(consecKey, String(next));
+        if (next >= 2) {
+          localStorage.setItem(badgeKey, '1');
+          this.newBadge = word;
+          try { this.cdr.detectChanges(); } catch { }
+          setTimeout(() => {
+            this.newBadge = null;
+            try { this.cdr.detectChanges(); } catch { }
+          }, 4500);
+        }
+      } else {
+        localStorage.setItem(consecKey, '0'); // reset streak
+      }
+    } catch { }
+  }
+
   // Toggle recording state
   async toggleRecording(): Promise<void> {
     if (this.isRecording) {
@@ -351,6 +567,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   private startPreRecordCountdown(): void {
     this.score = 0;
     this.shortfeedback = '';
+    this.videoClipText2 = '';
     if (this.isCountingDown || this.isRecording) return;
 
     this.cancelScoring$.next();
@@ -514,7 +731,12 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     if (runId !== this.recordRunId) return;
     this.isScoring = true;
 
-    this.api.scorePronunciation(blob, word)
+    const wordKey = word.toLowerCase();
+    const attemptNumber = (this.attemptCounts[wordKey] || 0) + 1;
+    const previousScore = this.lastScores[wordKey] ?? -1;
+    this.attemptCounts[wordKey] = attemptNumber;
+
+    this.api.scorePronunciation(blob, word, attemptNumber, previousScore)
       .pipe(
         takeUntil(this.cancelScoring$),
         finalize(() => {
@@ -527,23 +749,51 @@ export class PronunciationComponent implements OnInit, OnDestroy {
         if (runId !== this.recordRunId) return;
         this.score = this.normalizeScore(res.score);
         this.shortfeedback = res.feedback;
+        this.phonemeTip = (res as any).phoneme_tip || '';
+        this.videoClipText2 = res.video_clip_text2 || '';
         this.showResult = true;
         this.phonemeDetails = res.phoneme_details || [];
         this.studentPhonemes = res.student_phonemes || [];
         this.referencePhonemes = res.reference_phonemes || [];
 
+        // Store score for improvement detection on next attempt
+        this.lastScores[word.toLowerCase()] = this.score;
+
+        // Save to localStorage for parent dashboard
+        this.saveWordStat(word, this.score);
+
+        // Star animation
+        this.triggerStars();
+
+        // Confetti/celebration
+        this.triggerCelebration(this.score);
+
+        // Badge check
+        this.checkBadge(word, this.score);
+
         if (res.videoBlobBase64) {
-          const bytes = Uint8Array.from(atob(res.videoBlobBase64), c => c.charCodeAt(0));
-          const videoBlob = new Blob([bytes], { type: 'video/mp4' });
-          if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
-          this.videoUrl = URL.createObjectURL(videoBlob);
-          this.lastVideoBlobUrl = this.videoUrl;
-          this.tryPlayFeedbackVideo(this.videoUrl);
+          try {
+            const bytes = Uint8Array.from(atob(res.videoBlobBase64 as string), c => c.charCodeAt(0));
+            const videoBlob = new Blob([bytes], { type: 'video/mp4' });
+            if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
+            this.videoUrl = URL.createObjectURL(videoBlob);
+            this.lastVideoBlobUrl = this.videoUrl;
+            this.tryPlayFeedbackVideo(this.videoUrl);
+          } catch (e) {
+            console.error('Failed to decode videoBlobBase64:', e);
+          }
         }
         try { this.cdr.detectChanges(); } catch { }
-      }, (_err: unknown) => {
+      }, (err: unknown) => {
         if (runId !== this.recordRunId) return;
-        this.shortfeedback = 'Error while scoring. Please try again.';
+        let msg = 'Error while scoring. Please try again.';
+        try {
+          const body = (err as any)?.error;
+          if (body?.error) msg = body.error;
+          else if (body?.message) msg = body.message;
+        } catch { }
+        this.shortfeedback = msg;
+        this.score = 0;
         this.showResult = true;
         try { this.cdr.detectChanges(); } catch { }
       });
@@ -600,15 +850,21 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   private tryPlayFeedbackVideo(url: string): void {
     this.showVideo = true;
     this.videoSrc = url;
+    // Force Angular to render #videoEl into the DOM before we try to access it
+    try { this.cdr.detectChanges(); } catch { }
     setTimeout(() => {
       const v = this.videoElRef?.nativeElement;
       if (!v) return;
-      v.src = url;
+      // src is already set via [src]="videoSrc" binding — just reload and play
       v.load();
       v.play()
         .then(() => { this.isPlayingVideo = true; try { this.cdr.detectChanges(); } catch { } })
-        .catch(() => { this.isPlayingVideo = false; try { this.cdr.detectChanges(); } catch { } });
-    }, 0);
+        .catch((err: unknown) => {
+          console.error('Feedback video playback failed:', err);
+          this.isPlayingVideo = false;
+          try { this.cdr.detectChanges(); } catch { }
+        });
+    }, 50);
   }
 
   // Choose best mime type
@@ -644,6 +900,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     this.phonemeDetails = [];
     this.studentPhonemes = [];
     this.referencePhonemes = [];
+    this.phonemeTip = '';
   }
 
   // Play sample audio for current word
