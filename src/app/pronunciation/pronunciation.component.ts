@@ -554,6 +554,15 @@ export class PronunciationComponent implements OnInit, OnDestroy {
 
   // Toggle recording state
   async toggleRecording(): Promise<void> {
+    // Prime audio playback on EVERY user click. This is what unlocks the
+    // feedback video's audio later — once the page has played any audio
+    // inside a user gesture, the browser allows unmuted media playback
+    // for the rest of the session, even after the gesture token expires.
+    // Without this, the unmuted feedback video silently fails to autoplay
+    // for any backend response that takes more than ~5 seconds, which is
+    // why previously only the fast score=0 path had sound.
+    this.primeAudioPlayback();
+
     if (this.isRecording) {
       this.stopRecording(false);
       return;
@@ -561,6 +570,32 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     // Stop any playing video before recording starts
     this.resetVideoPlayerState();
     this.startPreRecordCountdown();
+  }
+
+  // Tracks whether we've already played audio inside a user gesture this
+  // session. Once true, the browser permits unmuted autoplay for media.
+  private audioPrimed = false;
+
+  /** Play a near-silent clip inside a user gesture so the browser grants
+   *  unmuted media playback permission for the rest of the session. */
+  private primeAudioPlayback(): void {
+    if (this.audioPrimed) return;
+    try {
+      // Tiny silent WAV (44-byte header + a few zero samples).
+      const silent =
+        'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+      const a = new Audio(silent);
+      a.volume = 0.0;
+      const p = a.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          this.audioPrimed = true;
+          try { a.pause(); } catch { }
+        }).catch(() => { /* ignore — gesture may not be active */ });
+      } else {
+        this.audioPrimed = true;
+      }
+    } catch { /* ignore */ }
   }
 
   // Start pre-record countdown
@@ -662,7 +697,10 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       try { URL.revokeObjectURL(this.recordedAudioUrl); } catch { }
     }
     this.recordedAudioUrl = URL.createObjectURL(blob);
-    
+
+    // Needle oscillates while the backend is scoring. It stops the moment
+    // the score response arrives, so the score appears at the same instant
+    // the wobble ends.
     this.isOscillating = true;
     try { this.cdr.detectChanges(); } catch { }
 
@@ -740,6 +778,9 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       .pipe(
         takeUntil(this.cancelScoring$),
         finalize(() => {
+          // Safety net for cancel/error paths. On the success path we already
+          // toggled these flags inside the subscribe handler (see below) so the
+          // score and the needle stop in the SAME render frame.
           this.isScoring = false;
           this.isOscillating = false;
           try { this.cdr.detectChanges(); } catch { }
@@ -747,43 +788,50 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       )
       .subscribe((res: ScoreResponse) => {
         if (runId !== this.recordRunId) return;
+
+        // ── STEP 1: render the SCORE immediately ──────────────────────
+        // Anything cheap goes here, then we flush the view so the user
+        // sees the number and the settled needle at the same instant the
+        // backend response arrives. The heavy base64→Blob decode for the
+        // feedback video is deferred to STEP 2 so it doesn't block the
+        // score paint (decoding a few-MB video can take 100-500ms on the
+        // main thread and was the cause of the perceived UI delay).
         this.score = this.normalizeScore(res.score);
         this.shortfeedback = res.feedback;
         this.phonemeTip = (res as any).phoneme_tip || '';
         this.videoClipText2 = res.video_clip_text2 || '';
         this.showResult = true;
+        this.isScoring = false;
+        this.isOscillating = false;
         this.phonemeDetails = res.phoneme_details || [];
         this.studentPhonemes = res.student_phonemes || [];
         this.referencePhonemes = res.reference_phonemes || [];
-
-        // Store score for improvement detection on next attempt
         this.lastScores[word.toLowerCase()] = this.score;
-
-        // Save to localStorage for parent dashboard
-        this.saveWordStat(word, this.score);
-
-        // Star animation
-        this.triggerStars();
-
-        // Confetti/celebration
-        this.triggerCelebration(this.score);
-
-        // Badge check
-        this.checkBadge(word, this.score);
-
-        if (res.videoBlobBase64) {
-          try {
-            const bytes = Uint8Array.from(atob(res.videoBlobBase64 as string), c => c.charCodeAt(0));
-            const videoBlob = new Blob([bytes], { type: 'video/mp4' });
-            if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
-            this.videoUrl = URL.createObjectURL(videoBlob);
-            this.lastVideoBlobUrl = this.videoUrl;
-            this.tryPlayFeedbackVideo(this.videoUrl);
-          } catch (e) {
-            console.error('Failed to decode videoBlobBase64:', e);
-          }
-        }
         try { this.cdr.detectChanges(); } catch { }
+
+        // ── STEP 2: side-effects and the heavy video decode ───────────
+        // Deferred so the score paint above isn't blocked by either the
+        // animations or the base64 decode below.
+        setTimeout(() => {
+          try { this.saveWordStat(word, this.score); } catch { }
+          try { this.triggerStars(); } catch { }
+          try { this.triggerCelebration(this.score); } catch { }
+          try { this.checkBadge(word, this.score); } catch { }
+
+          if (res.videoBlobBase64) {
+            try {
+              const bytes = Uint8Array.from(atob(res.videoBlobBase64 as string), c => c.charCodeAt(0));
+              const videoBlob = new Blob([bytes], { type: 'video/mp4' });
+              if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
+              this.videoUrl = URL.createObjectURL(videoBlob);
+              this.lastVideoBlobUrl = this.videoUrl;
+              this.tryPlayFeedbackVideo(this.videoUrl);
+            } catch (e) {
+              console.error('Failed to decode videoBlobBase64:', e);
+            }
+          }
+          try { this.cdr.detectChanges(); } catch { }
+        }, 0);
       }, (err: unknown) => {
         if (runId !== this.recordRunId) return;
         let msg = 'Error while scoring. Please try again.';
@@ -855,14 +903,42 @@ export class PronunciationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       const v = this.videoElRef?.nativeElement;
       if (!v) return;
-      // src is already set via [src]="videoSrc" binding — just reload and play
-      v.load();
-      v.play()
-        .then(() => { this.isPlayingVideo = true; try { this.cdr.detectChanges(); } catch { } })
-        .catch((err: unknown) => {
-          console.error('Feedback video playback failed:', err);
-          this.isPlayingVideo = false;
+
+      // Audio was primed earlier inside toggleRecording (user gesture),
+      // so the browser allows unmuted media playback here. Set state
+      // BEFORE calling play() — flipping .muted after play() can cause
+      // Chrome to pause the video, which previously made it look like
+      // the video wasn't playing at all.
+      v.muted = false;
+      v.volume = 1.0;
+
+      const playUnmuted = () => v.play();
+
+      playUnmuted()
+        .then(() => {
+          this.isPlayingVideo = true;
           try { this.cdr.detectChanges(); } catch { }
+        })
+        .catch((err: unknown) => {
+          // Last-ditch fallback: if the browser still blocks unmuted
+          // playback (e.g. priming was rejected), play muted so the
+          // user at least sees the video, then attempt one unmute.
+          console.warn('Unmuted feedback playback blocked, retrying muted:', err);
+          v.muted = true;
+          v.play()
+            .then(() => {
+              this.isPlayingVideo = true;
+              // Try to unmute after a beat; if Chrome blocks it the
+              // video keeps playing silently, which is still better
+              // than no video.
+              setTimeout(() => { try { v.muted = false; } catch { } }, 120);
+              try { this.cdr.detectChanges(); } catch { }
+            })
+            .catch((err2: unknown) => {
+              console.error('Feedback video playback failed:', err2);
+              this.isPlayingVideo = false;
+              try { this.cdr.detectChanges(); } catch { }
+            });
         });
     }, 50);
   }

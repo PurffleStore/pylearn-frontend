@@ -51,14 +51,19 @@
             Your browser does not support the video tag.
           </video>
 
+          <!-- Playback is initiated by tryPlayFeedbackVideo() in TS so we
+               have full control over the muted/play sequencing. We don't
+               put `autoplay` or `muted` here on purpose: the browser would
+               otherwise start a muted autoplay the instant Angular renders
+               this element, which then conflicts with the explicit play()
+               call and was causing the "video not playing" symptom. -->
           <video *ngIf="showVideo"
                  #videoEl
                  [src]="videoSrc"
                  class="media-rounded center-video"
                  (play)="onVideoPlay()"
                  (pause)="onVideoPause()"
-                 autoplay
-                 muted
+                 playsinline
                  (ended)="onVideoEnded()">
             Your browser does not support the video tag.
           </video>
