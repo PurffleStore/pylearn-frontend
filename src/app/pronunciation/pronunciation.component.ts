@@ -636,16 +636,29 @@ export class PronunciationComponent implements OnInit, OnDestroy {
   // Start recording
   private async startRecordingInternal(): Promise<void> {
     this.isCountingDown = false;
+    // Set isRecording = true HERE (before await) so the play/mic buttons stay
+    // disabled during the getUserMedia permission prompt. Without this, there
+    // is a window between countdown ending and recording actually starting
+    // where buttons are briefly re-enabled and can be clicked unexpectedly.
+    this.isRecording = true;
     const myRunId = ++this.recordRunId;
+    try { this.cdr.detectChanges(); } catch { }
 
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      // Mic permission denied or unavailable — reset state cleanly
+      this.isRecording = false;
+      try { this.cdr.detectChanges(); } catch { }
+      return;
+    }
+
     this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: this.currentMimeType });
     this.chunks = [];
 
     this.mediaRecorder.ondataavailable = e => e.data.size && this.chunks.push(e.data);
     this.mediaRecorder.onstop = () => { if (myRunId === this.recordRunId) this.onRecordingStopped(myRunId); };
 
-    this.isRecording = true;
     this.setupSilenceDetection(this.mediaStream);
     this.mediaRecorder.start();
     try { this.cdr.detectChanges(); } catch { }

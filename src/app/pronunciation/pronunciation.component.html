@@ -2,7 +2,8 @@
   <div class="pp-header">
     <h1>Pronunciation Practice</h1>
     <!-- FEATURE 2: Parent Dashboard Button -->
-    <button class="parent-dash-btn" (click)="showDashboard = true" type="button" title="Parent view — see progress for all words">
+    <button class="parent-dash-btn" (click)="showDashboard = true" type="button" title="Parent view — see progress for all words"
+            [disabled]="isOscillating || isScoring">
       👨‍👩‍👧 Parent
     </button>
   </div>
@@ -92,6 +93,7 @@
                   [class.recording]="isRecording"
                   [attr.aria-pressed]="isRecording"
                   (click)="toggleRecording()"
+                  [disabled]="isOscillating || isScoring"
                   type="button"
                   [attr.aria-label]="isRecording ? 'Stop recording' : 'Start recording'">
             <svg class="progress-ring" width="85" height="85" viewBox="0 0 90 90" aria-hidden="true">
@@ -391,7 +393,7 @@
       <div class="container">
         <button class="arrow arrow-left"
                 (click)="prev()"
-                [disabled]="index === 0 || isRecording || isCountingDown"
+                [disabled]="index === 0 || isRecording || isCountingDown || isOscillating || isScoring"
                 type="button"
                 [attr.aria-label]="'Previous word'"
                 title="Go to previous word">
@@ -404,7 +406,7 @@
         
         <button class="arrow arrow-right"
                 (click)="next()"
-                [disabled]="index === items.length - 1 || isRecording || isCountingDown"
+                [disabled]="index === items.length - 1 || isRecording || isCountingDown || isOscillating || isScoring"
                 type="button"
                 [attr.aria-label]="'Next word'"
                 title="Go to next word">
