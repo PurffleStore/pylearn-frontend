@@ -99,7 +99,9 @@ export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
   toggleMenu(): void { this.menuOpen = !this.menuOpen; }
 
   // -------------------- Navigation --------------------
-  reloadPage(): void { window.location.href = '/'; }
+ reloadPage(): void {
+  window.location.reload();
+}
 
   goToChat(): void { this.router.navigate(['/chat']); }
   goToStudentPortal(): void { this.router.navigate(['/student-portal']); }
