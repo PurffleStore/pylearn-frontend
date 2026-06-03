@@ -1,4 +1,3 @@
-// swedish-chat.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -37,6 +36,11 @@ export interface TtsRequest {
   text: string;
 }
 
+/**
+ * HTTP service for the Swedish Chat Tutor feature.
+ * Sends student messages to the backend AI endpoint and returns structured
+ * responses that may include Tavily web-search results alongside AI-generated text.
+ */
 @Injectable({
   providedIn: 'root'
 })

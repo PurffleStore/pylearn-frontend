@@ -1,28 +1,92 @@
 <footer *ngIf="brandService.showFooter">
   <ng-container [ngSwitch]="brandService.name">
     <ng-container *ngSwitchCase="'Py-Learn'">
-      
-          <p>© 2025 Pykara Technologies Pvt. Ltd. All rights reserved.</p>
-          <a href="https://pykara.ai/contact-us/" target="blank">Contact Us</a> |
-          <a href="#" (click)="openPrivacyPopup($event)">Privacy Policy</a> |
-          <a href="#" (click)="openTermsPopup($event)">Terms & Conditions</a>
-          <div class="social-icons">
-            <a [href]="brandService.socialLinksCurrent.linkedin" target="_blank" class="social-icon linkedin" aria-label="LinkedIn">
+
+      <!-- ===== MAIN FOOTER BODY ===== -->
+      <div class="pyl-footer-body">
+
+        <!-- Brand column -->
+        <div class="pyl-footer-brand">
+          <div class="pyl-brand-logo">
+            <img [src]="brandService.logo" alt="Py-Learn Logo" class="pyl-logo-img" />
+            <div>
+              <div class="pyl-brand-name">Py-Learn</div>
+              <div class="pyl-brand-tagline">SMART LEARNING</div>
+            </div>
+          </div>
+          <p class="pyl-brand-desc">AI-powered learning platform for students. English, Maths &amp; Science — beautifully guided.</p>
+          <div class="pyl-social-icons">
+            <a [href]="brandService.socialLinksCurrent.linkedin" target="_blank" class="pyl-social-icon" aria-label="LinkedIn">
               <i class="fab fa-linkedin-in"></i>
             </a>
-            <a [href]="brandService.socialLinksCurrent.youtube" target="_blank" class="social-icon youtube" aria-label="YouTube">
+            <a [href]="brandService.socialLinksCurrent.youtube" target="_blank" class="pyl-social-icon" aria-label="YouTube">
               <i class="fab fa-youtube"></i>
             </a>
-            <a [href]="brandService.socialLinksCurrent.facebook" target="_blank" class="social-icon facebook" aria-label="Facebook">
-              <i class="fab fa-facebook-f"></i>
-            </a>
-            <a [href]="brandService.socialLinksCurrent.instagram" target="_blank" class="social-icon instagram" aria-label="Instagram">
+            <a [href]="brandService.socialLinksCurrent.instagram" target="_blank" class="pyl-social-icon" aria-label="Instagram">
               <i class="fab fa-instagram"></i>
             </a>
-            <a [href]="brandService.socialLinksCurrent.website" target="_blank" class="social-icon website" aria-label="Website">
-              <i class="fas fa-globe"></i>
+            <a [href]="brandService.socialLinksCurrent.facebook" target="_blank" class="pyl-social-icon" aria-label="Facebook">
+              <i class="fab fa-facebook-f"></i>
             </a>
           </div>
+        </div>
+
+        <!-- Link columns -->
+        <div class="pyl-footer-links">
+
+          <div class="pyl-link-col">
+            <div class="pyl-col-title">Platform</div>
+            <a class="pyl-link" routerLink="/student-portal">Student Portal</a>
+            <span class="pyl-link pyl-link--muted">Teacher Portal <span class="pyl-soon">Soon</span></span>
+            <span class="pyl-link pyl-link--muted">Parent Portal <span class="pyl-soon">Soon</span></span>
+            <span class="pyl-link pyl-link--muted">Admin Portal <span class="pyl-soon">Soon</span></span>
+          </div>
+
+          <div class="pyl-link-col">
+            <div class="pyl-col-title">Learning</div>
+            <a class="pyl-link" style="cursor:pointer" (click)="goToSubject('english')">English</a>
+            <a class="pyl-link" style="cursor:pointer" (click)="goToSubject('maths')">Maths</a>
+            <a class="pyl-link" style="cursor:pointer" (click)="goToSubject('science')">Science</a>
+            <a class="pyl-link" style="cursor:pointer" (click)="goToSubject('english')">AI Tutors</a>
+          </div>
+
+          <div class="pyl-link-col">
+            <div class="pyl-col-title">Company</div>
+            <a class="pyl-link" href="https://pykara.ai" target="_blank">About Us</a>
+            <a class="pyl-link" href="https://pykara.ai/contact-us/" target="_blank">Contact Us</a>
+            <a class="pyl-link" href="https://pykara.ai" target="_blank">Careers</a>
+            <a class="pyl-link" href="https://pykara.ai" target="_blank">Blog</a>
+          </div>
+
+          <div class="pyl-link-col">
+            <div class="pyl-col-title">Support</div>
+            <a class="pyl-link" href="https://pykara.ai/contact-us/" target="_blank">Student Help</a>
+            <a class="pyl-link" href="https://pykara.ai/contact-us/" target="_blank">Parent Guide</a>
+            <a class="pyl-link" href="https://pykara.ai/contact-us/" target="_blank">FAQ</a>
+            <a class="pyl-link" href="mailto:info@pykara.ai">info&#64;pykara.ai</a>
+          </div>
+
+          <div class="pyl-link-col">
+            <div class="pyl-col-title">Legal</div>
+            <a class="pyl-link" href="#" (click)="openPrivacyPopup($event)">Privacy Policy</a>
+            <a class="pyl-link" href="#" (click)="openTermsPopup($event)">Terms &amp; Conditions</a>
+            <a class="pyl-link" href="https://pykara.ai" target="_blank">www.pykara.ai</a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== BOTTOM BAR ===== -->
+      <div class="pyl-footer-bottom">
+        <span class="pyl-copyright">© 2025 Pykara Technologies Pvt. Ltd. All rights reserved.</span>
+        <span class="pyl-bottom-links">
+          <a href="#" (click)="openPrivacyPopup($event)">Privacy Policy</a>
+          <span>·</span>
+          <a href="#" (click)="openTermsPopup($event)">Terms &amp; Conditions</a>
+          <span>·</span>
+          <a href="https://pykara.ai/contact-us/" target="_blank">Contact Us</a>
+        </span>
+      </div>
        
         <!-- Privacy Policy Popup -->
         <div *ngIf="showPrivacyPopup">
@@ -271,9 +335,6 @@
           </div>
         </div>
      
-      <div class="footer-watermark-row">
-        <a class="footer-watermark" href="https://www.pykara.ai" target="_blank">www.pykara.ai</a>
-      </div>
     </ng-container>
     <!-- MJ-Learn Footer -->
     <ng-container *ngSwitchCase="'MJ-Learn'">

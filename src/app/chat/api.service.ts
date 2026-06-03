@@ -1,17 +1,29 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 type Grade = 'lowergrade' | 'midgrade' | 'highergrade';
 type DbLevel = 'low' | 'mid' | 'high';
 
+/**
+ * Resolves the correct RAG API base URL based on the current hostname.
+ * Hugging Face deployments use a dedicated space URL; all other production
+ * and local environments fall back to the configured environment URL.
+ */
 function resolveBaseUrl(): string {
-  const isHF = location.hostname.endsWith('hf.space');
-  if (isHF) return 'https://majemaai-mj-learn-backend.hf.space/rag';
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:5000/rag';
-  return 'https://pylearn-backend-production.up.railway.app/rag';
+  const isHuggingFaceEnvironment = location.hostname.endsWith('hf.space');
+  if (isHuggingFaceEnvironment) return `${environment.apiBaseUrlHuggingFace}/rag`;
+  return `${environment.apiBaseUrl}/rag`;
 }
 
+/**
+ * HTTP client service for the English Chat Tutor AI backend.
+ *
+ * Provides methods to generate grammar explanations, follow-up suggestions,
+ * audio and video synthesis, and text punctuation via the RAG API.
+ * The base URL is resolved at startup from the current environment configuration.
+ */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly baseUrl = resolveBaseUrl();
@@ -76,7 +88,6 @@ export class ApiService {
     return this.http.post<any>(`${this.baseUrl}/suggest-followups`, body, { headers });
   }
 
-  // FIX: include headers, db_level and model
   synthesizeAudio(text: string, language = 'en', referenceFiles?: string[]) {
     const grade = this.getGrade();
     const headers = this.makeHeaders(grade);
@@ -90,7 +101,6 @@ export class ApiService {
     return this.http.post<{ audio_url: string }>(`${this.baseUrl}/synthesize-audio`, body, { headers });
   }
 
-  // FIX: include headers, db_level and model
   synthesizeVideo(text: string, language = 'en') {
     const grade = this.getGrade();
     const headers = this.makeHeaders(grade);
@@ -102,8 +112,6 @@ export class ApiService {
     };
     return this.http.post<{ video_url: string }>(`${this.baseUrl}/synthesize-video`, body, { headers });
   }
-
-  //KD Talker setup
 
   generateVideoFromText(text: string, language = 'en') {    
     const grade = this.getGrade();

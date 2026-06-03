@@ -40,6 +40,13 @@ function mkItem(
   };
 }
 
+/**
+ * Lip Trainer component.
+ *
+ * Displays video demonstrations of mouth movements for each letter of the alphabet,
+ * paired with audio pronunciation and animated word examples. Allows students to
+ * adjust playback speed and practice phonics at their own pace.
+ */
 @Component({
   selector: 'app-lip-trainer',
   templateUrl: './lip-trainer.component.html',
@@ -224,7 +231,7 @@ export class LipTrainerComponent implements AfterViewInit, OnDestroy {
     this.playSrc(this.current.videoSrc, v => {
       v.currentTime = 0;
       v.playbackRate = this.playbackSpeed;
-      v.play().catch(e => console.warn('play error:', e));
+      v.play().catch(_e => { /* Video autoplay blocked — user interaction required */ });
     });
   }
 
@@ -235,7 +242,7 @@ export class LipTrainerComponent implements AfterViewInit, OnDestroy {
 
   resumeVideo(): void {
     const v = this.centerVideoRef?.nativeElement;
-    if (v) { v.playbackRate = this.playbackSpeed; v.play().catch(e => console.warn(e)); }
+    if (v) { v.playbackRate = this.playbackSpeed; v.play().catch(_e => { /* Resume blocked */ }); }
     this.isVideoPaused = false;
   }
 
@@ -260,8 +267,7 @@ export class LipTrainerComponent implements AfterViewInit, OnDestroy {
     if (this.isVideoPlaying) return;
     const src = this.current?.audioSrc;
     if (!src) return;
-    console.log('Playing audio:', src);
-    try { new Audio(src).play().catch(() => {}); } catch { /* noop */ }
+    try { new Audio(src).play().catch(() => {}); } catch { /* Audio playback not supported */ }
   }
 
   // ── Speed ────────────────────────────────────────────────────────────────

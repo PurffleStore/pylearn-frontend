@@ -1,4 +1,3 @@
-// swedish-chat.component.ts
 import { Component, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
 import { SwedishChatService, ChatResponse, TavilyResult } from './swedishchat.service';
 
@@ -12,6 +11,13 @@ export interface Message {
   ttsLoading?: boolean;
 }
 
+/**
+ * Swedish Chat Tutor component.
+ *
+ * Provides an AI-powered conversational interface for Swedish language learning.
+ * Supports text-based chat with optional Tavily web-search results surfaced inline.
+ * Intended for K–Grade 5 students practising basic Swedish conversation.
+ */
 @Component({
   selector: 'app-swedishchat',
   templateUrl: './swedishchat.component.html',

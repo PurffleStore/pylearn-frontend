@@ -9,6 +9,7 @@ import { ChatService, ChatResponse } from './chatllm.service';
 import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 
+/** Represents a single message in the Subject Tutor chat conversation. */
 interface Message {
   text: string;
   safeHtml?: SafeHtml;
@@ -18,11 +19,19 @@ interface Message {
   videoKey?: string;
 }
 
+/** Extends the global Window type to include cross-browser SpeechRecognition. */
 interface Window {
   SpeechRecognition: any;
   webkitSpeechRecognition: any;
 }
 
+/**
+ * Subject Tutor chat component.
+ *
+ * Provides a conversational AI tutor interface with real-time message streaming,
+ * speech recognition input, and synchronised video playback keyed to AI responses.
+ * Used as the primary learning interface for the English Chat Tutor module.
+ */
 @Component({
   selector: 'app-chatllm',
   standalone: true,
@@ -81,6 +90,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     private sanitizer: DomSanitizer
   ) { }
 
+  /** Initialises the session, loads the video map, and sets up speech recognition. */
   ngOnInit(): void {
     this.chatService.resetSession();
     this.messages = [];
@@ -89,7 +99,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     this.isTyping = false;
 
     this.chatService.loadVideoMap().subscribe({
-      error: () => console.warn('Could not load video map')
+      error: () => { /* Video map unavailable — video feature will be skipped */ }
     });
 
     this.videoSub = this.chatService.video$.subscribe(key => {
@@ -106,6 +116,7 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     // Wait until user clicks Start Lesson.
   }
 
+  /** Cleans up subscriptions, stops any active speech recognition, and removes video listeners. */
   ngOnDestroy(): void {
     if (this.videoSub) this.videoSub.unsubscribe();
     if (this.recognition && this.isListening) this.recognition.stop();
@@ -489,8 +500,11 @@ export class ChatLLMComponent implements OnInit, AfterViewInit, OnDestroy, After
     this.focusInput();
   }
 
+  /**
+   * Navigates the user back to the Student Portal, restoring the English section.
+   */
   goHome(): void {
-    this.router.navigate(['/']);
+    this.router.navigate(['/student-portal'], { queryParams: { section: 'english' } });
   }
 
   toggleVoiceInput(): void {

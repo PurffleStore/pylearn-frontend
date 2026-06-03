@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { FormsModule, ReactiveFormsModule} from '@angular/forms';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { AppRoutingModule } from './app-routing.module';
@@ -21,9 +22,8 @@ import { LipTrainerComponent } from './lip-trainer/lip-trainer.component';
 import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
-/*import { ChatLLMComponent } from './chatllm/chatllm.component';*/
-//import { FitTextDirective } from './chatllm/fit-text.directive';
 import { SwedishchatComponent } from './swedishchat/swedishchat.component';
+import { StudentPortalComponent } from './student-portal/student-portal.component';
 
 @NgModule({
   declarations: [
@@ -32,12 +32,12 @@ import { SwedishchatComponent } from './swedishchat/swedishchat.component';
     PronunciationComponent,
     LipTrainerComponent,
     StaticChatComponent,
-    /*ChatLLMComponent,*/
-   /* FitTextDirective,*/
-    SwedishchatComponent
+    SwedishchatComponent,
+    StudentPortalComponent
   ],
   imports: [
     BrowserModule,
+    BrowserAnimationsModule,
     AppRoutingModule,
     FormsModule,
     ReactiveFormsModule,

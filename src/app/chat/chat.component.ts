@@ -1,5 +1,4 @@
-// (full file content with only one small change: send kdtalker flag when calling explainGrammar)
-import { Component, Inject, OnDestroy, PLATFORM_ID, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, Inject, OnInit, AfterViewInit, OnDestroy, PLATFORM_ID, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ApiService } from './api.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -84,7 +83,7 @@ interface ChatMessage {
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent implements OnDestroy {
+export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('waveformCanvas') waveformCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('chatContent') chatBox!: ElementRef<HTMLDivElement>;
 

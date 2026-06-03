@@ -1,0 +1,594 @@
+<!-- ============================================================
+     Py-lean  |  Student Portal
+     ============================================================ -->
+
+<!-- ===== LEFT SIDE STRIP ===== -->
+<div class="side-strip side-strip--left" aria-hidden="true">
+  <div class="ss-floats">
+    <span class="ss-bubble ss-b1">A</span>
+    <span class="ss-bubble ss-b2">B</span>
+    <span class="ss-bubble ss-b3">C</span>
+    <span class="ss-icon ss-i1">✏️</span>
+    <span class="ss-icon ss-i2">📚</span>
+    <span class="ss-icon ss-i3">⭐</span>
+  </div>
+  <div class="ss-mascot">
+    <img src="assets/images/mascots/elephant.png" alt="" class="ss-img"/>
+    <div class="ss-label">English · Swedish</div>
+  </div>
+</div>
+
+<!-- ===== RIGHT SIDE STRIP ===== -->
+<div class="side-strip side-strip--right" aria-hidden="true">
+  <div class="ss-floats">
+    <span class="ss-bubble ss-b1 ss-b--green">1</span>
+    <span class="ss-bubble ss-b2 ss-b--green">+</span>
+    <span class="ss-bubble ss-b3 ss-b--green">2</span>
+    <span class="ss-icon ss-i1">🔬</span>
+    <span class="ss-icon ss-i2">🔢</span>
+    <span class="ss-icon ss-i3">🌟</span>
+  </div>
+  <div class="ss-mascot">
+    <img src="assets/images/mascots/rabbit .png" alt="" class="ss-img"/>
+    <div class="ss-label">Maths · Science</div>
+  </div>
+</div>
+
+<div class="sp-page" (click)="closeDropdowns()">
+
+  <!-- ===== ONBOARDING MODAL ===== -->
+  <div *ngIf="showOnboarding" class="ob-overlay">
+    <div class="ob-modal" (click)="$event.stopPropagation()">
+      <div class="ob-progress">
+        <div class="ob-prog-step" [class.done]="onboardingStep > i+1" [class.active]="onboardingStep === i+1"
+             *ngFor="let s of [1,2,3,4,5]; let i = index">{{ i+1 }}</div>
+      </div>
+
+      <!-- Step 1 – Grade -->
+      <div *ngIf="onboardingStep === 1" class="ob-step">
+        <div class="ob-icon">🎒</div>
+        <h3>Welcome to Py-Learn!</h3>
+        <p>Let's set up your learning profile. First — what grade are you in?</p>
+        <div class="ob-chips">
+          <div class="ob-chip" *ngFor="let g of grades"
+               [class.selected]="selectedGrade === g"
+               (click)="selectedGrade = g">{{ g }}</div>
+        </div>
+      </div>
+
+      <!-- Step 2 – Language -->
+      <div *ngIf="onboardingStep === 2" class="ob-step">
+        <div class="ob-icon">🌍</div>
+        <h3>Choose Your Language</h3>
+        <p>Which language do you prefer for learning?</p>
+        <div class="ob-chips">
+          <div class="ob-chip" *ngFor="let l of langs"
+               [class.selected]="selectedLang === l"
+               (click)="selectedLang = l">{{ l }}</div>
+        </div>
+      </div>
+
+      <!-- Step 3 – Avatar -->
+      <div *ngIf="onboardingStep === 3" class="ob-step">
+        <div class="ob-icon">🎨</div>
+        <h3>Choose Your Avatar</h3>
+        <p>Pick a character to represent you on the platform.</p>
+        <div class="ob-avatars">
+          <div class="ob-avatar" *ngFor="let a of avatars"
+               [class.selected]="selectedAvatar === a"
+               (click)="selectedAvatar = a">{{ a }}</div>
+        </div>
+      </div>
+
+      <!-- Step 4 – Subjects -->
+      <div *ngIf="onboardingStep === 4" class="ob-step">
+        <div class="ob-icon">📚</div>
+        <h3>Favourite Subjects</h3>
+        <p>Pick the subjects you love most (select as many as you like).</p>
+        <div class="ob-subjects-grid">
+          <div class="ob-subj" *ngFor="let s of subjects"
+               [class.selected]="isSubjectSelected(s.id)"
+               (click)="toggleSubject(s.id)"
+               [style.border-color]="isSubjectSelected(s.id) ? s.color : '#e5e7eb'">
+            <span class="os-emoji">{{ s.emoji }}</span>
+            <span class="os-name">{{ s.name }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 – Done -->
+      <div *ngIf="onboardingStep === 5" class="ob-step">
+        <div class="ob-icon">🚀</div>
+        <h3>You're All Set!</h3>
+        <p>Your personalised learning path is ready. Let's start learning!</p>
+        <div class="ob-summary">
+          <div class="obs-row"><span>Grade:</span><span>{{ selectedGrade || '–' }}</span></div>
+          <div class="obs-row"><span>Language:</span><span>{{ selectedLang || '–' }}</span></div>
+          <div class="obs-row"><span>Avatar:</span><span>{{ selectedAvatar || '–' }}</span></div>
+          <div class="obs-row"><span>Subjects:</span><span>{{ selectedSubjects.length }} selected</span></div>
+        </div>
+      </div>
+
+      <div class="ob-actions">
+        <button class="ob-btn-back" *ngIf="onboardingStep > 1" (click)="prevOnboardingStep()">← Back</button>
+        <button class="ob-btn-next" (click)="nextOnboardingStep()">
+          {{ onboardingStep < 5 ? 'Next →' : 'Start Learning 🚀' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN NAVBAR ===== -->
+  <nav class="main-navbar" (click)="$event.stopPropagation()">
+    <div class="navbar-inner">
+
+      <!-- Logo -->
+      <div class="nav-logo" (click)="goHome()" role="button" tabindex="0">
+        <img [src]="brand.logo" [alt]="brand.name + ' Logo'" />
+        <span class="brand-name">Py-Learn</span>
+      </div>
+
+      <!-- Hamburger -->
+      <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <!-- Portal Links -->
+      <ul class="nav-portals" [class.open]="menuOpen">
+        <li>
+          <a class="nav-link" (click)="goHome(); menuOpen=false" role="button">
+            <i class="fas fa-home"></i> Home
+          </a>
+        </li>
+        <li>
+          <span class="nav-link nav-link--active">
+            <i class="fas fa-graduation-cap"></i> Student Portal
+          </span>
+        </li>
+        <li class="nav-item--disabled" title="Coming Soon">
+          <span class="nav-link nav-link--muted"><i class="fas fa-chalkboard-teacher"></i> Teacher Portal</span>
+          <span class="badge-soon">Soon</span>
+        </li>
+        <li class="nav-item--disabled" title="Coming Soon">
+          <span class="nav-link nav-link--muted"><i class="fas fa-users"></i> Parent Portal</span>
+          <span class="badge-soon">Soon</span>
+        </li>
+        <li class="nav-item--disabled" title="Coming Soon">
+          <span class="nav-link nav-link--muted"><i class="fas fa-cog"></i> Admin Portal</span>
+          <span class="badge-soon">Soon</span>
+        </li>
+      </ul>
+
+      <!-- Profile -->
+      <div class="nav-actions" (click)="$event.stopPropagation()">
+        <ng-container *ngIf="isAuthenticated && username; else loginIcon">
+          <div class="avatar" (click)="toggleAccountMenu()" [title]="displayName">
+            {{ usernameInitial }}
+          </div>
+          <div class="account-menu" *ngIf="showAccountMenu" (mouseleave)="closeAccountMenu()">
+            <div class="account-header">
+              <div class="avatar avatar-lg">{{ usernameInitial }}</div>
+              <div class="account-meta">
+                <div class="account-name">{{ displayName }}</div>
+                <div class="account-email">{{ displayEmail }}</div>
+              </div>
+            </div>
+            <div class="account-item" (click)="showAccountMenu=false">
+              <i class="fas fa-user-circle"></i> My Account
+            </div>
+            <hr />
+            <div class="account-item account-item--danger" (click)="logout()">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #loginIcon>
+          <a routerLink="/login" class="login-btn" title="Login"><i class="fas fa-user"></i></a>
+        </ng-template>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ===== SECONDARY NAVIGATION ===== -->
+  <div class="sp-subnav" (click)="$event.stopPropagation()">
+    <div class="sp-subnav-inner">
+
+      <!-- Mobile secondary nav toggle -->
+      <button class="sp-subnav-toggle" (click)="toggleMobileNav()">
+        <i class="fas fa-th-large"></i>
+        <span>{{ activeSection | titlecase }}</span>
+        <i class="fas fa-chevron-down"></i>
+      </button>
+
+      <div class="sp-subnav-items" [class.open]="mobileNavOpen">
+
+        <button class="sni" [class.sni--active]="activeSection==='dashboard'" (click)="setSection('dashboard')">
+          <i class="fas fa-th-large"></i> Dashboard
+        </button>
+        <button class="sni" [class.sni--active]="activeSection==='english'"  (click)="setSection('english')">
+          <span>📖</span> English
+        </button>
+        <button class="sni" [class.sni--active]="activeSection==='maths'"    (click)="setSection('maths')">
+          <span>🔢</span> Maths
+        </button>
+        <button class="sni" [class.sni--active]="activeSection==='science'"  (click)="setSection('science')">
+          <span>🔬</span> Science
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT AREA ===== -->
+  <main class="sp-main">
+
+    <!-- ========== DASHBOARD ========== -->
+    <div class="sp-section" *ngIf="activeSection==='dashboard'">
+
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+
+        <!-- Left: greeting + CTA -->
+        <div class="wb-left">
+          <div class="wb-greeting">God dag! 👋 &nbsp;🇸🇪</div>
+          <h2 class="wb-title">Ready to learn, <span>{{ displayName }}</span>?</h2>
+          <p class="wb-sub">You have 3 lessons waiting. Keep your streak going! 🔥</p>
+          <button class="wb-btn" (click)="setSection('english')">
+            Start Today's Lesson <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- Available Lessons Carousel Card
+             Cycles through availableLessons one by one.
+             Auto-advances every 4 s; student can also use arrow buttons or dots. -->
+        <div class="teacher-notification">
+
+          <!-- Header row with navigation arrows -->
+          <div class="tn-header">
+            <div class="tn-header-left">
+              <i class="fas fa-bell tn-bell"></i>
+              <span class="tn-label">Available Lessons</span>
+            </div>
+            <div class="tn-nav-arrows">
+              <button class="tn-arrow" (click)="previousNotification()" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button class="tn-arrow" (click)="nextNotification()" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Lesson content -->
+          <div class="tn-title">{{ currentLesson.lessonTitle }}</div>
+          <p class="tn-message">{{ currentLesson.message }}</p>
+
+          <!-- Footer: dots + status + button -->
+          <div class="tn-footer">
+            <div class="tn-dots">
+              <span
+                *ngFor="let lesson of availableLessons; let i = index"
+                class="tn-dot-nav"
+                [class.tn-dot-nav--active]="i === activeNotificationIndex"
+                (click)="goToNotification(i)"
+                [attr.aria-label]="'Go to lesson ' + (i + 1)">
+              </span>
+            </div>
+            <button class="tn-btn" (click)="setSection(currentLesson.targetSection)">
+              View Lesson
+            </button>
+          </div>
+
+          <!-- Available-now status -->
+          <div class="tn-status">
+            <span class="tn-dot"></span> {{ notificationTimeLabel }}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Weekly Progress -->
+      <div class="dash-row">
+        <div class="dash-block dash-block--progress">
+          <h3 class="db-title"><i class="fas fa-chart-line"></i> Weekly Progress</h3>
+          <div class="week-progress">
+            <div class="wp-bar-group" *ngFor="let day of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; let i=index">
+              <div class="wp-bar-wrap">
+                <div class="wp-bar" [style.height.%]="[60,80,45,90,70,30,55][i]"
+                     [style.background]="i===3 ? 'var(--primary)' : 'var(--primary-light)'"></div>
+              </div>
+              <div class="wp-day">{{ day }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming Activities -->
+        <div class="dash-block dash-block--upcoming">
+          <h3 class="db-title"><i class="fas fa-calendar-alt"></i> Upcoming Activities</h3>
+          <div class="upcoming-list">
+            <div class="up-item" *ngFor="let a of upcomingActivities">
+              <div class="up-emoji">{{ a.emoji }}</div>
+              <div class="up-info">
+                <div class="up-title">{{ a.title }}</div>
+                <div class="up-time">{{ a.time }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+
+      <!-- Subject Cards -->
+      <div class="dash-section">
+        <h3 class="ds-title">My Subjects</h3>
+        <div class="subject-grid">
+
+          <!-- English with elephant -->
+          <div class="sc-subject-card hmc-english" (click)="setSection('english')">
+            <div class="sc-text">
+              <div class="hmc-icon-wrap"><i class="fas fa-book-open"></i></div>
+              <div class="hmc-title">Learn English</div>
+              <div class="hmc-desc">Reading, grammar, vocabulary and storytelling.</div>
+            </div>
+            <div class="sc-image">
+              <img src="assets/images/mascots/elephantfinal.png" alt="English mascot — elephant"/>
+            </div>
+          </div>
+
+          <!-- Maths with rabbit -->
+          <div class="sc-subject-card hmc-maths" (click)="setSection('maths')">
+            <div class="sc-text">
+              <div class="hmc-icon-wrap hmc-icon--green"><i class="fas fa-calculator"></i></div>
+              <div class="hmc-title">Learn Maths</div>
+              <div class="hmc-desc">Numbers, geometry, logic and problem solving.</div>
+            </div>
+            <div class="sc-image">
+              <img src="assets/images/mascots/rabbitfinal.png" alt="Maths mascot — rabbit"/>
+            </div>
+          </div>
+
+          <!-- Science with lion -->
+          <div class="sc-subject-card hmc-science" (click)="setSection('science')">
+            <div class="sc-text">
+              <div class="hmc-icon-wrap hmc-icon--yellow"><i class="fas fa-flask"></i></div>
+              <div class="hmc-title">Learn Science</div>
+              <div class="hmc-desc">Biology, earth science, space and experiments.</div>
+            </div>
+            <div class="sc-image">
+              <img src="assets/images/mascots/lionfinal.png" alt="Science mascot — lion"/>
+            </div>
+          </div>
+
+          <!-- Remaining subjects -->
+          <div class="subj-card" *ngFor="let s of subjects | slice:3"
+               (click)="setSection(s.id)"
+               [style.--sc]="s.color" [style.--sb]="s.bg">
+            <div class="sc-emoji">{{ s.emoji }}</div>
+            <div class="sc-name">{{ s.name }}</div>
+            <div class="sc-desc">{{ s.desc }}</div>
+            <div class="sc-arrow"><i class="fas fa-arrow-right"></i></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- AI Features -->
+      <div class="dash-section">
+        <h3 class="ds-title">AI Learning Tools</h3>
+        <div class="ai-grid">
+          <div class="ai-card" *ngFor="let f of aiFeatures">
+            <div class="ai-icon">{{ f.icon }}</div>
+            <div class="ai-name">{{ f.name }}</div>
+            <div class="ai-desc">{{ f.desc }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end dashboard -->
+
+
+    <!-- ========== ENGLISH ========== -->
+    <div class="sp-section" *ngIf="activeSection==='english'">
+      <div class="subj-header" style="--sc:#0EA5E9;--sb:#6AC4EF">
+        <div class="sh-emoji">📖</div>
+        <div><h2 class="sh-title">English Learning</h2><p class="sh-sub">Reading, grammar, vocabulary and storytelling.</p></div>
+        <img src="assets/images/mascots/elephantfinal.png" class="sh-mascot" alt="English mascot — elephant"/>
+      </div>
+      <div class="content-grid content-grid--full">
+        <div class="content-card" *ngFor="let item of englishItems"
+             [class.content-card--active]="item.active"
+             [class.content-card--disabled]="!item.active"
+             (click)="handleContentAction(item)">
+          <div class="cont-icon">{{ item.icon }}</div>
+          <div class="cont-title">{{ item.title }}</div>
+          <div class="cont-desc">{{ item.desc }}</div>
+          <div class="cont-badge" [class.badge--active]="item.active" [class.badge--soon]="!item.active">
+            {{ item.active ? 'Available' : 'Coming Soon' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <!-- ========== MATHS ========== -->
+    <div class="sp-section" *ngIf="activeSection==='maths'">
+      <div class="subj-header" style="--sc:#10B981;--sb:#6FD9A8">
+        <div class="sh-emoji">🔢</div>
+        <div><h2 class="sh-title">Maths</h2><p class="sh-sub">From counting to fractions and word problems.</p></div>
+        <img src="assets/images/mascots/rabbitfinal.png" class="sh-mascot" alt="Maths mascot — rabbit with Maths book"/>
+      </div>
+      <div class="content-grid content-grid--full">
+        <div class="content-card content-card--disabled" *ngFor="let item of mathsItems">
+          <div class="cont-icon">{{ item.icon }}</div>
+          <div class="cont-title">{{ item.title }}</div>
+          <div class="cont-desc">{{ item.desc }}</div>
+          <div class="cont-badge badge--soon">Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========== SCIENCE ========== -->
+    <div class="sp-section" *ngIf="activeSection==='science'">
+      <div class="subj-header" style="--sc:#65A30D;--sb:#C5E84A">
+        <div class="sh-emoji">🔬</div>
+        <div><h2 class="sh-title">Science Learning</h2><p class="sh-sub">Curiosity about the world we live in.</p></div>
+        <img src="assets/images/mascots/lionfinal.png" class="sh-mascot" alt="Science mascot — lion"/>
+      </div>
+      <div class="content-grid content-grid--full">
+        <div class="content-card content-card--disabled" *ngFor="let item of scienceItems">
+          <div class="cont-icon">{{ item.icon }}</div>
+          <div class="cont-title">{{ item.title }}</div>
+          <div class="cont-desc">{{ item.desc }}</div>
+          <div class="cont-badge badge--soon">Coming Soon</div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <!-- ========== READING ========== -->
+    <div class="sp-section" *ngIf="activeSection==='reading'">
+      <div class="subj-header" style="--sc:#F97316;--sb:#FFEDD5">
+        <div class="sh-emoji">📖</div>
+        <div><h2 class="sh-title">Reading Companion</h2><p class="sh-sub">Read Aloud, AI Listening, Fluency Analysis & Story Narration</p></div>
+      </div>
+      <div class="subj-layout">
+        <div class="content-grid">
+          <div class="content-card content-card--disabled"
+               *ngFor="let item of ['Read Aloud','AI Reading Companion','Fluency Analysis','Missed Word Detection','Story Narration','Reading Score','AI Feedback','Reading Progress']; let i=index">
+            <div class="cont-icon">{{ ['🎙️','🤖','📊','🔍','📖','⭐','💬','📈'][i] }}</div>
+            <div class="cont-title">{{ item }}</div>
+            <div class="cont-badge badge--soon">Coming Soon</div>
+          </div>
+        </div>
+        <aside class="subj-sidebar">
+          <div class="ai-tutor-widget">
+            <div class="atw-icon">✨</div>
+            <h4 class="atw-title">Ask the AI tutor</h4>
+            <p class="atw-desc">Stuck on a topic? Get a friendly explanation.</p>
+            <button class="atw-btn" (click)="goToChat('subject')">Open chat</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+
+    <!-- ========== PRONUNCIATION ========== -->
+    <div class="sp-section" *ngIf="activeSection==='pronunciation'">
+      <div class="subj-header" style="--sc:#F97316;--sb:#FFEDD5">
+        <div class="sh-emoji">🗣️</div>
+        <div>
+          <h2 class="sh-title">Pronunciation</h2>
+          <p class="sh-sub">Listen, repeat and get instant feedback. English and Swedish supported.</p>
+        </div>
+      </div>
+      <div class="subj-layout">
+        <div class="content-grid">
+          <div class="content-card content-card--active" (click)="openPronunciation()">
+            <div class="cont-icon">🎤</div>
+            <div class="cont-title">Pronunciation Trainer</div>
+            <div class="cont-desc">AI pronunciation analysis with full scoring</div>
+            <div class="cont-badge badge--active">Available</div>
+          </div>
+          <div class="content-card content-card--active" (click)="openLipTrainer()">
+            <div class="cont-icon">👄</div>
+            <div class="cont-title">Lip Movement Trainer</div>
+            <div class="cont-desc">Lip movement analysis & AI feedback</div>
+            <div class="cont-badge badge--active">Available</div>
+          </div>
+          <div class="content-card content-card--disabled" *ngFor="let item of ['Fluency Score','English Sounds','Swedish Sounds','Listen & Repeat','AI Voice Coach']; let i=index">
+            <div class="cont-icon">{{ ['📊','🇬🇧','🇸🇪','🎧','🤖'][i] }}</div>
+            <div class="cont-title">{{ item }}</div>
+            <div class="cont-badge badge--soon">Coming Soon</div>
+          </div>
+        </div>
+        <aside class="subj-sidebar">
+          <div class="ai-tutor-widget">
+            <div class="atw-icon">🎙️</div>
+            <h4 class="atw-title">AI Speaking Buddy</h4>
+            <p class="atw-desc">Practice English and Swedish out loud.</p>
+            <button class="atw-btn" (click)="openPronunciation()">Open trainer</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+
+    <!-- ========== REWARDS ========== -->
+    <div class="sp-section" *ngIf="activeSection==='rewards'">
+      <div class="subj-header" style="--sc:#F59E0B;--sb:#FEF9C3">
+        <div class="sh-emoji">🏆</div>
+        <div><h2 class="sh-title">Rewards & Achievements</h2><p class="sh-sub">Your stars, badges, streaks, coins & learning milestones</p></div>
+      </div>
+
+      <div class="rewards-stats">
+        <div class="rws-card">
+          <div class="rws-icon">⭐</div>
+          <div class="rws-val">245</div>
+          <div class="rws-lbl">Total Stars</div>
+        </div>
+        <div class="rws-card">
+          <div class="rws-icon">🔥</div>
+          <div class="rws-val">5</div>
+          <div class="rws-lbl">Day Streak</div>
+        </div>
+        <div class="rws-card">
+          <div class="rws-icon">🪙</div>
+          <div class="rws-val">80</div>
+          <div class="rws-lbl">Coins</div>
+        </div>
+        <div class="rws-card">
+          <div class="rws-icon">📚</div>
+          <div class="rws-val">12</div>
+          <div class="rws-lbl">Lessons Done</div>
+        </div>
+        <div class="rws-card">
+          <div class="rws-icon">🏅</div>
+          <div class="rws-val">8</div>
+          <div class="rws-lbl">Badges</div>
+        </div>
+        <div class="rws-card">
+          <div class="rws-icon">🎯</div>
+          <div class="rws-val">72%</div>
+          <div class="rws-lbl">Weekly Goal</div>
+        </div>
+      </div>
+
+      <!-- Weekly goal progress -->
+      <div class="rw-goal-card">
+        <div class="rwg-header">
+          <span class="rwg-title">🎯 Weekly Learning Goal</span>
+          <span class="rwg-value">72% complete</span>
+        </div>
+        <div class="rwg-bar">
+          <div class="rwg-fill" style="width:72%"></div>
+        </div>
+        <div class="rwg-sub">Keep going! 3 more lessons to hit your goal this week.</div>
+      </div>
+
+      <!-- Badges -->
+      <div class="dash-section">
+        <h3 class="ds-title">My Badges</h3>
+        <div class="badges-grid">
+          <div class="badge-card" *ngFor="let b of badges" [class.badge-card--earned]="b.earned" [class.badge-card--locked]="!b.earned">
+            <div class="bc-icon">{{ b.icon }}</div>
+            <div class="bc-name">{{ b.name }}</div>
+            <div class="bc-desc">{{ b.desc }}</div>
+            <div class="bc-status" *ngIf="b.earned">✅ Earned</div>
+            <div class="bc-status bc-status--locked" *ngIf="!b.earned">🔒 Locked</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- end sp-main -->
+
+</div><!-- end sp-page -->
+
+<app-footer></app-footer>

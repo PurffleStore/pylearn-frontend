@@ -75,7 +75,6 @@ export class ChatService {
       this.userId = uuidv4();
       sessionStorage.setItem('chat_user_id', this.userId);
     }
-    console.log('Chat session user_id:', this.userId);
   }
 
   /**
@@ -94,7 +93,6 @@ export class ChatService {
     // Generate new user_id
     this.userId = uuidv4();
     sessionStorage.setItem('chat_user_id', this.userId);
-    console.log('Session reset. New user_id:', this.userId);
 
     // Clear old context on the backend
     return this.http.post<{ success: boolean; message: string }>(

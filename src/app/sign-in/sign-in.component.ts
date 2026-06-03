@@ -312,9 +312,8 @@ export class SignInComponent implements OnInit, OnDestroy {
   /**
    * Show success message
    */
-  private showSuccessMessage(message: string): void {
-    // In real implementation, use a toast service
-    console.log(message);
+  private showSuccessMessage(_message: string): void {
+    // Reserved for a future toast/notification service implementation
   }
 
   /**

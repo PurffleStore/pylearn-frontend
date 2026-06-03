@@ -210,13 +210,12 @@ export class PronunciationComponent implements OnInit, OnDestroy {
       try {
         const audio = new Audio(this.recordedAudioUrl);
         audio.currentTime = 0;
-        audio.play().catch(err => {
-          console.error('Error playing user recording:', err);
+        audio.play().catch(_err => {
           this.shortfeedback = 'Unable to play recording. Please try again.';
           this.cdr.detectChanges();
         });
-      } catch (error) {
-        console.error('Error creating audio from recording:', error);
+      } catch (_error) {
+        // Audio object creation failed — browser may not support this format
       }
     } else if (this.lastRecordedBlob) {
       // Create URL from blob if not already created
@@ -227,14 +226,11 @@ export class PronunciationComponent implements OnInit, OnDestroy {
         this.recordedAudioUrl = URL.createObjectURL(this.lastRecordedBlob);
         const audio = new Audio(this.recordedAudioUrl);
         audio.currentTime = 0;
-        audio.play().catch(err => {
-          console.error('Error playing user recording:', err);
-        });
-      } catch (error) {
-        console.error('Error creating audio URL:', error);
+        audio.play().catch(_err => { /* Playback blocked by browser autoplay policy */ });
+      } catch (_error) {
+        // Blob URL creation failed
       }
     } else {
-      console.warn('No recording available to play');
       this.shortfeedback = 'No recording found. Please record your pronunciation first.';
       this.cdr.detectChanges();
     }
@@ -799,64 +795,67 @@ export class PronunciationComponent implements OnInit, OnDestroy {
           try { this.cdr.detectChanges(); } catch { }
         })
       )
-      .subscribe((res: ScoreResponse) => {
-        if (runId !== this.recordRunId) return;
+      .subscribe({
+        next: (res: ScoreResponse) => {
+          if (runId !== this.recordRunId) return;
 
-        // ── STEP 1: render the SCORE immediately ──────────────────────
-        // Anything cheap goes here, then we flush the view so the user
-        // sees the number and the settled needle at the same instant the
-        // backend response arrives. The heavy base64→Blob decode for the
-        // feedback video is deferred to STEP 2 so it doesn't block the
-        // score paint (decoding a few-MB video can take 100-500ms on the
-        // main thread and was the cause of the perceived UI delay).
-        this.score = this.normalizeScore(res.score);
-        this.shortfeedback = res.feedback;
-        this.phonemeTip = (res as any).phoneme_tip || '';
-        this.videoClipText2 = res.video_clip_text2 || '';
-        this.showResult = true;
-        this.isScoring = false;
-        this.isOscillating = false;
-        this.phonemeDetails = res.phoneme_details || [];
-        this.studentPhonemes = res.student_phonemes || [];
-        this.referencePhonemes = res.reference_phonemes || [];
-        this.lastScores[word.toLowerCase()] = this.score;
-        try { this.cdr.detectChanges(); } catch { }
-
-        // ── STEP 2: side-effects and the heavy video decode ───────────
-        // Deferred so the score paint above isn't blocked by either the
-        // animations or the base64 decode below.
-        setTimeout(() => {
-          try { this.saveWordStat(word, this.score); } catch { }
-          try { this.triggerStars(); } catch { }
-          try { this.triggerCelebration(this.score); } catch { }
-          try { this.checkBadge(word, this.score); } catch { }
-
-          if (res.videoBlobBase64) {
-            try {
-              const bytes = Uint8Array.from(atob(res.videoBlobBase64 as string), c => c.charCodeAt(0));
-              const videoBlob = new Blob([bytes], { type: 'video/mp4' });
-              if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
-              this.videoUrl = URL.createObjectURL(videoBlob);
-              this.lastVideoBlobUrl = this.videoUrl;
-              this.tryPlayFeedbackVideo(this.videoUrl);
-            } catch (e) {
-              console.error('Failed to decode videoBlobBase64:', e);
-            }
-          }
+          // ── STEP 1: render the SCORE immediately ──────────────────────
+          // Anything cheap goes here, then we flush the view so the user
+          // sees the number and the settled needle at the same instant the
+          // backend response arrives. The heavy base64→Blob decode for the
+          // feedback video is deferred to STEP 2 so it doesn't block the
+          // score paint (decoding a few-MB video can take 100-500ms on the
+          // main thread and was the cause of the perceived UI delay).
+          this.score = this.normalizeScore(res.score);
+          this.shortfeedback = res.feedback;
+          this.phonemeTip = (res as any).phoneme_tip || '';
+          this.videoClipText2 = res.video_clip_text2 || '';
+          this.showResult = true;
+          this.isScoring = false;
+          this.isOscillating = false;
+          this.phonemeDetails = res.phoneme_details || [];
+          this.studentPhonemes = res.student_phonemes || [];
+          this.referencePhonemes = res.reference_phonemes || [];
+          this.lastScores[word.toLowerCase()] = this.score;
           try { this.cdr.detectChanges(); } catch { }
-        }, 0);
-      }, (err: unknown) => {
-        if (runId !== this.recordRunId) return;
-        let msg = 'Error while scoring. Please try again.';
-        try {
-          const body = (err as any)?.error;
-          if (body?.error) msg = body.error;
-          else if (body?.message) msg = body.message;
-        } catch { }
-        this.shortfeedback = msg;
-        this.score = 0;
-        this.showResult = true;
-        try { this.cdr.detectChanges(); } catch { }
+
+          // ── STEP 2: side-effects and the heavy video decode ───────────
+          // Deferred so the score paint above isn't blocked by either the
+          // animations or the base64 decode below.
+          setTimeout(() => {
+            try { this.saveWordStat(word, this.score); } catch { }
+            try { this.triggerStars(); } catch { }
+            try { this.triggerCelebration(this.score); } catch { }
+            try { this.checkBadge(word, this.score); } catch { }
+
+            if (res.videoBlobBase64) {
+              try {
+                const bytes = Uint8Array.from(atob(res.videoBlobBase64 as string), c => c.charCodeAt(0));
+                const videoBlob = new Blob([bytes], { type: 'video/mp4' });
+                if (this.lastVideoBlobUrl) { try { URL.revokeObjectURL(this.lastVideoBlobUrl); } catch { } }
+                this.videoUrl = URL.createObjectURL(videoBlob);
+                this.lastVideoBlobUrl = this.videoUrl;
+                this.tryPlayFeedbackVideo(this.videoUrl);
+              } catch (e) {
+                // Failed to decode videoBlobBase64 — video feedback will be skipped
+              }
+            }
+            try { this.cdr.detectChanges(); } catch { }
+          }, 0);
+        },
+        error: (err: unknown) => {
+          if (runId !== this.recordRunId) return;
+          let msg = 'Error while scoring. Please try again.';
+          try {
+            const body = (err as any)?.error;
+            if (body?.error) msg = body.error;
+            else if (body?.message) msg = body.message;
+          } catch { }
+          this.shortfeedback = msg;
+          this.score = 0;
+          this.showResult = true;
+          try { this.cdr.detectChanges(); } catch { }
+        }
       });
   }
 
@@ -936,7 +935,7 @@ export class PronunciationComponent implements OnInit, OnDestroy {
           // Last-ditch fallback: if the browser still blocks unmuted
           // playback (e.g. priming was rejected), play muted so the
           // user at least sees the video, then attempt one unmute.
-          console.warn('Unmuted feedback playback blocked, retrying muted:', err);
+          // Unmuted playback blocked by autoplay policy — retrying muted so video still displays
           v.muted = true;
           v.play()
             .then(() => {
@@ -947,8 +946,8 @@ export class PronunciationComponent implements OnInit, OnDestroy {
               setTimeout(() => { try { v.muted = false; } catch { } }, 120);
               try { this.cdr.detectChanges(); } catch { }
             })
-            .catch((err2: unknown) => {
-              console.error('Feedback video playback failed:', err2);
+            .catch((_err2: unknown) => {
+              // Feedback video playback failed even when muted — no video shown
               this.isPlayingVideo = false;
               try { this.cdr.detectChanges(); } catch { }
             });

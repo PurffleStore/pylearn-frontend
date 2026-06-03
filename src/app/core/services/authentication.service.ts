@@ -1,13 +1,26 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, catchError, switchMap, finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
 /**
+ * Represents a local user credential entry.
+ * Used for standard demo accounts that authenticate without a backend API call.
+ */
+interface LocalCredential {
+  username: string;
+  password: string;
+}
+
+/**
  * Authentication service responsible for managing user authentication state
  * and handling login/logout operations with automatic token refresh.
+ *
+ * Supports two authentication paths:
+ * 1. Local credential check — for the five standard demo accounts (pykara1–pykara5).
+ * 2. API-backed authentication — for all other accounts via the backend.
  */
 @Injectable({
   providedIn: 'root'
@@ -19,6 +32,19 @@ export class AuthenticationService {
   private readonly LOGOUT_ENDPOINT = '/auth/logout';
   private readonly REFRESH_ENDPOINT = '/auth/refresh';
   private readonly CHECK_AUTH_ENDPOINT = '/auth/check-auth';
+
+  /**
+   * Standard demo accounts for local authentication.
+   * These credentials are intentionally hardcoded for demonstration purposes only
+   * and do not represent real user data.
+   */
+  private readonly LOCAL_CREDENTIALS: ReadonlyArray<LocalCredential> = [
+    { username: 'Pykara1', password: 'Pyk@12345' },
+    { username: 'Pykara2', password: 'Pyk@12345' },
+    { username: 'Pykara3', password: 'Pyk@12345' },
+    { username: 'Pykara4', password: 'Pyk@12345' },
+    { username: 'Pykara5', password: 'Pyk@12345' }
+  ];
 
   private readonly loggedInSubject = new BehaviorSubject<boolean>(false);
   private refreshIntervalId: number | null = null;
@@ -62,17 +88,25 @@ export class AuthenticationService {
   }
 
   /**
-   * Authenticate user with credentials
+   * Authenticate user with credentials.
+   *
+   * For the five standard demo accounts (pykara1–pykara5), authentication is
+   * resolved locally without an API call. All other accounts are authenticated
+   * via the backend API.
+   *
+   * @param credentials - The username and password supplied by the user.
+   * @returns An Observable that emits on success or errors with an AuthError.
    */
   public login(credentials: { username: string; password: string }): Observable<any> {
-    const loginData = {
-      username: credentials.username,
-      password: credentials.password
-    };
+    if (this.isLocalCredential(credentials.username, credentials.password)) {
+      return this.performLocalLogin(credentials.username);
+    }
 
-    return this.http.post(`${this.API_BASE_URL}${this.LOGIN_ENDPOINT}`, loginData, {
-      withCredentials: true
-    }).pipe(
+    return this.http.post(
+      `${this.API_BASE_URL}${this.LOGIN_ENDPOINT}`,
+      { username: credentials.username, password: credentials.password },
+      { withCredentials: true }
+    ).pipe(
       tap(() => {
         this.setLoggedIn(true);
         this.startAutoRefresh();
@@ -83,9 +117,51 @@ export class AuthenticationService {
   }
 
   /**
-   * Log out current user
+   * Check whether the supplied credentials match a local demo account.
+   *
+   * @param username - The username to look up.
+   * @param password - The password to verify.
+   * @returns `true` if a matching local credential exists, otherwise `false`.
+   */
+  private isLocalCredential(username: string, password: string): boolean {
+    return this.LOCAL_CREDENTIALS.some(
+      (credential) => credential.username === username && credential.password === password
+    );
+  }
+
+  /**
+   * Complete a local (non-API) login for demo accounts.
+   * Sets authentication state and persists the username to localStorage.
+   *
+   * @param username - The authenticated username.
+   * @returns An Observable that immediately emits a success result.
+   */
+  private performLocalLogin(username: string): Observable<{ success: boolean }> {
+    this.setLoggedIn(true);
+    localStorage.setItem('username', username);
+    return of({ success: true });
+  }
+
+  /**
+   * Log out the current user.
+   *
+   * For local demo accounts, the session is cleared immediately without an API
+   * call. For API-authenticated accounts, a logout request is sent to the backend
+   * and the local session is cleaned up regardless of the response.
+   *
+   * @returns An Observable that completes after logout handling is finished.
    */
   public logout(): Observable<any> {
+    const currentUsername = localStorage.getItem('username') ?? '';
+    const isLocal = this.LOCAL_CREDENTIALS.some(
+      (credential) => credential.username === currentUsername
+    );
+
+    if (isLocal) {
+      this.handleLogoutSuccess();
+      return of({ success: true });
+    }
+
     return this.http.post(`${this.API_BASE_URL}${this.LOGOUT_ENDPOINT}`, {}, {
       withCredentials: true
     }).pipe(

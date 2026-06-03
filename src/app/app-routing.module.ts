@@ -7,31 +7,39 @@ import { authGuard } from './core/guards/auth.guard';
 import { StaticChatComponent } from './staticchat/staticchat.component';
 import { ChatLLMComponent } from './chatllm/chatllm.component';
 import { SwedishchatComponent } from './swedishchat/swedishchat.component';
+import { StudentPortalComponent } from './student-portal/student-portal.component';
 
 /**
  * Application routing configuration
- * 
+ *
  * Routes are organized by access level:
  * - Public routes (no authentication required)
  * - Protected routes (authentication required)
  */
 export const routes: Routes = [
   // Public routes
-  { 
-    path: '', 
-    component: HomeComponent, 
+  {
+    path: '',
+    component: HomeComponent,
     pathMatch: 'full',
     data: { title: 'Home' }
   },
-  { 
-    path: 'home', 
+  {
+    path: 'home',
     component: HomeComponent,
     data: { title: 'Home' }
   },
-  { 
-    path: 'login', 
+  {
+    path: 'login',
     component: SignInComponent,
     data: { title: 'Sign In' }
+  },
+
+  // Student Portal
+  {
+    path: 'student-portal',
+    component: StudentPortalComponent,
+    data: { title: 'Student Portal' }
   },
 
   // Chat routes
@@ -46,11 +54,10 @@ export const routes: Routes = [
     component: StaticChatComponent,
     data: { title: 'Staticchat' }
   },
-   {
+  {
     path: 'chatllm',
     component: ChatLLMComponent,
     data: { title: 'Chatllm' }
-
   },
   {
     path: 'swedishchat',
@@ -59,8 +66,8 @@ export const routes: Routes = [
   },
 
   // Fallback route
-  { 
-    path: '**', 
+  {
+    path: '**',
     redirectTo: '',
     data: { title: 'Page Not Found' }
   }
@@ -68,7 +75,7 @@ export const routes: Routes = [
 
 @NgModule({
   imports: [RouterModule.forRoot(routes, {
-    enableTracing: false, // Set to true for debugging
+    enableTracing: false,
     scrollPositionRestoration: 'top',
     anchorScrolling: 'enabled'
   })],

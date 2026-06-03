@@ -4,6 +4,11 @@ import { BehaviorSubject } from 'rxjs';
 // Add type for brand names
 export type BrandName = 'Py-Learn' | 'MJ-Learn';
 
+/**
+ * Provides brand identity (name, logo, social links) for multi-tenant deployments.
+ * The active brand is resolved once at startup from the current hostname and exposed
+ * as reactive observables so all components stay in sync without explicit coupling.
+ */
 @Injectable({ providedIn: 'root' })
 export class BrandService {
   private nameSubject: BehaviorSubject<BrandName>;
@@ -40,10 +45,9 @@ export class BrandService {
     };
 
   constructor() {
-    // Detect brand by URL and port
+    // Detect brand by hostname to support multi-tenant deployments
     const url = window.location.href;
-    //const port = window.location.port;
-    let brandName: BrandName = 'Py-Learn'; // default to Py-Learn for type safety
+    let brandName: BrandName = 'Py-Learn';
     let logoPath = 'assets/images/pykara-logo.png';
 
     if (url.includes('pykara-py-learn')) {
@@ -55,17 +59,6 @@ export class BrandService {
       logoPath = 'assets/images/majema-logo.png';
       this.showFooter = true;
     }
-    //else if (url.includes('localhost')) {
-    //  if (port === '4200') {
-    //    brandName = 'Py-Learn';
-    //    logoPath = 'assets/images/pykara-logo.png';
-    //    this.showFooter = true;
-    //  } else if (port === '4300') {
-    //    brandName = 'MJ-Learn';
-    //    logoPath = 'assets/images/majema-logo.png';
-    //    this.showFooter = true;
-    //  }
-    //}
 
 
     this.nameSubject = new BehaviorSubject<BrandName>(brandName);

@@ -7,6 +7,13 @@ import { PronunciationComponent } from '../pronunciation/pronunciation.component
 import { LipTrainerComponent } from '../lip-trainer/lip-trainer.component';
 import { AuthenticationService } from '../core/services/authentication.service';
 
+/**
+ * Home page component for the Py-Learn platform.
+ *
+ * Renders the main landing page including the hero section, subject cards,
+ * portal overview, and navigation. Handles authentication state display
+ * and routes users to the appropriate portal on interaction.
+ */
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
@@ -95,12 +102,19 @@ export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
   reloadPage(): void { window.location.href = '/'; }
 
   goToChat(): void { this.router.navigate(['/chat']); }
-  goToVoice(): void { 
-    // Disabled - do nothing
+  goToStudentPortal(): void { this.router.navigate(['/student-portal']); }
+  scrollToPortals(): void {
+    const el = document.getElementById('portals');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+  scrollToSubjects(): void {
+    const el = document.getElementById('subjects');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+  goToVoice(): void {
     console.log('Voice feature is currently disabled');
   }
-  goToFindword(): void { 
-    // Disabled - do nothing
+  goToFindword(): void {
     console.log('Find Word feature is currently disabled');
   }
   goToDetails(title: string): void {

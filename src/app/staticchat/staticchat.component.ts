@@ -1,8 +1,7 @@
-// (file header unchanged)
-import { Component, OnInit, ViewChild, ElementRef, HostListener, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ChatService, ChatMessage, SearchResponse, Question } from './staticchat.service';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 import {
@@ -14,12 +13,20 @@ import Typo from 'typo-js';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
+/**
+ * Static Chat (Subject Tutor) component.
+ *
+ * Displays a teacher avatar video alongside a chat interface for guided
+ * tense and grammar lessons. Supports text input with real-time spell-checking,
+ * microphone recording with backend transcription, and pre-loaded question
+ * suggestions to scaffold student responses.
+ */
 @Component({
   selector: 'app-staticchat',
   templateUrl: './staticchat.component.html',
   styleUrls: ['./staticchat.component.css']
 })
-export class StaticChatComponent implements OnInit, AfterViewInit {
+export class StaticChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
@@ -32,6 +39,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
   showSuggestions = false;
   allQuestions: Question[] = [];
   searchQuery = new Subject<string>();
+  private searchQuerySubscription?: Subscription;
   selectedQuestions: Set<string> = new Set();
 
   // navigation index for pair view
@@ -80,7 +88,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       message: ['', Validators.required]
     });
 
-    this.searchQuery.pipe(
+    this.searchQuerySubscription = this.searchQuery.pipe(
       debounceTime(300),
       distinctUntilChanged()
     ).subscribe(query => {
@@ -90,7 +98,16 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
    
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
+    this.initializeChat();
+  }
+
+  /**
+   * Initialises (or re-initialises after a clear) the chat session:
+   * loads the spell-checker dictionary, pushes the opening bot message,
+   * detects microphone/recorder support, and pre-loads available questions.
+   */
+  private initializeChat(): void {
     if (!this.isBrowser) return;
 
     Promise.all([
@@ -98,10 +115,10 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       this.http.get('assets/dictionaries/en_us.dic', { responseType: 'text' }).toPromise()
     ]).then(([affData, dicData]) => {
       this.spell = new Typo('en_US', affData, dicData);
-      console.log('Spell loaded successfully');
-    }).catch(err => {
-      console.error('Dictionary load failed', err);
+    }).catch(_err => {
+      // Dictionary failed to load — spell-checking will be unavailable
     });
+
     this.messages.push({
       id: 1,
       text: 'Hello children! Today we will learn tenses in a simple and fun way.',
@@ -109,18 +126,14 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       timestamp: new Date()
     });
 
-    if (!this.isBrowser) return;
-
     const hasGetUserMedia = !!navigator.mediaDevices?.getUserMedia;
     const hasMediaRecorder = typeof (window as any).MediaRecorder !== 'undefined';
     this.supported = hasGetUserMedia && hasMediaRecorder;
 
     this.loadAllQuestions();
 
-    // start at last pair by default
+    // Scroll to the last message pair after the view updates
     setTimeout(() => this.scrollToLastPair(), 0);
-  
-    
   }
 
   ngAfterViewInit() {
@@ -321,7 +334,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
           this.allQuestions = response.questions;
         }
       },
-      error: (error) => console.error('Error loading questions:', error)
+      error: (_error) => { /* Question loading failed silently — suggestions unavailable */ }
     });
   }
 
@@ -457,8 +470,8 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
       this.audioPlayer.src = url;
       this.audioPlayer.currentTime = 0;
       this.audioPlayer.play().catch(() => { /* ignore autoplay errors */ });
-    } catch (e) {
-      console.error('Audio play failed', e);
+    } catch (_e) {
+      // Audio playback failed silently
     }
   }
 
@@ -610,7 +623,7 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     this.hasChatStarted = false;
     this.lastResponseVideoUrl = null;
 
-    this.ngOnInit();
+    this.initializeChat();
     this.playBlinkVideo();
   }
 
@@ -809,8 +822,8 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
         this.messageInput?.nativeElement.focus();
       }, 0);
 
-    } catch (e) {
-      console.error('handleTranscriptionAccepted error', e);
+    } catch (_e) {
+      // Transcription acceptance handling failed silently
     }
   }
 
@@ -819,8 +832,8 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
     // Clear input and keep UI consistent
     try {
       this.chatForm.get('message')?.setValue('');
-    } catch (e) {
-      console.error('handleTranscriptionRejected error', e);
+    } catch (_e) {
+      // Transcription rejection handling failed silently
     }
   }
 
@@ -836,10 +849,19 @@ export class StaticChatComponent implements OnInit, AfterViewInit {
         timestamp: new Date()
       });
       setTimeout(() => this.scrollToLastPair(), 50);
-    } catch (e) {
-      console.error('handleTranscriptionError error', e);
+    } catch (_e) {
+      // Transcription error handling failed silently
     }
   }
 
+  /** Cleans up subscriptions and audio resources when the component is destroyed. */
+  ngOnDestroy(): void {
+    this.searchQuerySubscription?.unsubscribe();
+    this.searchQuery.complete();
+    if (this.audioPlayer) {
+      this.audioPlayer.pause();
+      this.audioPlayer = null;
+    }
+  }
 
 }
