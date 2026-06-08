@@ -1,0 +1,30 @@
+<div class="consonant-card" [class.compact]="compact">
+
+  <!-- Animated background orb -->
+  <div class="card-orb"></div>
+
+  <!-- Type badge -->
+  <div class="cons-badge">
+    <span class="badge-pulse"></span>
+    🔡 Consonant
+  </div>
+
+  <!-- Hero letter -->
+  <div class="letter-stage">
+    <div class="letter-glow"></div>
+    <span class="big-letter">{{ card.letter }}</span>
+  </div>
+
+  <!-- Label chip -->
+  <div class="label-chip">{{ card.label }}</div>
+
+  <!-- Example word -->
+  <div class="example-word-row">
+    <span class="example-word">{{ card.exampleWord }}</span>
+    <span class="example-meaning">= {{ card.exampleMeaning }}</span>
+  </div>
+
+  <!-- Type pill -->
+  <div class="type-pill">🔡 Swedish Consonant</div>
+
+</div>

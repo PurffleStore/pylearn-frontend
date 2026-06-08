@@ -8,6 +8,7 @@ import { StaticChatComponent } from './staticchat/staticchat.component';
 import { ChatLLMComponent } from './chatllm/chatllm.component';
 import { SwedishchatComponent } from './swedishchat/swedishchat.component';
 import { StudentPortalComponent } from './student-portal/student-portal.component';
+import { LipTrainerComponent } from './lip-trainer/lip-trainer.component';
 
 /**
  * Application routing configuration
@@ -40,6 +41,13 @@ export const routes: Routes = [
     path: 'student-portal',
     component: StudentPortalComponent,
     data: { title: 'Student Portal' }
+  },
+
+  // Lip Trainer
+  {
+    path: 'lip-trainer',
+    component: LipTrainerComponent,
+    data: { title: 'Lip Trainer' }
   },
 
   // Chat routes

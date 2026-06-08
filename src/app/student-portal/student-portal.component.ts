@@ -5,7 +5,6 @@ import { AuthenticationService } from '../core/services/authentication.service';
 import { BrandService } from '../shared/brand.service';
 import { MatDialog } from '@angular/material/dialog';
 import { PronunciationComponent } from '../pronunciation/pronunciation.component';
-import { LipTrainerComponent } from '../lip-trainer/lip-trainer.component';
 
 /**
  * Represents a lesson-update notification sent by a teacher.
@@ -372,9 +371,7 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     this.showGeneralDropdown = false;
   }
   openLipTrainer(): void {
-    this.dialog.open(LipTrainerComponent, {
-      width: '90vw', maxWidth: '95vw', height: '85vh', disableClose: true
-    });
+    this.router.navigate(['/lip-trainer']);
     this.showGeneralDropdown = false;
   }
 

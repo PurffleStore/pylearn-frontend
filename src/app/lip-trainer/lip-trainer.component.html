@@ -1,297 +1,250 @@
-<div class="pp-page">
+<div class="lt-page" style="background-image: url('assets/lip-trainer/main/bg_liptrainer.png')">
 
-  <!-- ============ TOP BAR ============ -->
-  <header class="pp-topbar">
-    <div class="brand">
-     
-      <div class="brand-text">
-        <span class="brand-eyebrow">Pronunciation Lab</span>
-        <h1>Lip Trainer</h1>
-      </div>
+  <!-- ══ TOP BAR ══ -->
+  <header class="lt-topbar">
+    <div class="lt-brand">
+      <span class="lt-eyebrow">🚀 Pronunciation Lab</span>
+      <h1 class="lt-title">LIP TRAINER <span class="lt-rocket">🚀</span></h1>
     </div>
 
-    <div class="topbar-meta">
-      <!-- Playing state chip -->
-      <div class="position-chip" [class.is-playing]="isVideoPlaying && !isVideoPaused">
-        <span class="chip-eq" *ngIf="isVideoPlaying && !isVideoPaused" aria-hidden="true">
+    <div class="lt-pill lt-pill-pink lt-topbar-center-pill">
+      <span class="lt-eq" *ngIf="isVideoPlaying && !isVideoPaused"><i></i><i></i><i></i><i></i></span>
+      <span *ngIf="!isVideoPlaying || isVideoPaused">🎵</span>
+      LIP MOVEMENT
+    </div>
+
+    <div class="lt-topbar-right">
+      <div class="lt-long-badge" *ngIf="isCurrentVowel">
+        <span class="lt-badge-eq" *ngIf="isVideoPlaying && !isVideoPaused">
           <i></i><i></i><i></i><i></i>
         </span>
-        <span class="chip-dot" *ngIf="!isVideoPlaying || isVideoPaused"></span>
-        <span class="chip-label">
-          <ng-container [ngSwitch]="playingPhase">
-            <span *ngSwitchCase="'short-a'">Short A &nbsp;/æ/</span>
-            <span *ngSwitchCase="'long-a'">Long A &nbsp;/e&#618;/</span>
-            <span *ngSwitchCase="'sound'">Playing</span>
-          </ng-container>
-        </span>
+        <span class="lt-badge-dot" *ngIf="!isVideoPlaying || isVideoPaused"></span>
+        {{ isUppercaseGroup ? 'LONG' : 'SHORT' }}
       </div>
-
-      <!-- Case badge: LONG / SHORT - only show for vowels -->
-      <div class="case-badge" [class.is-upper]="isUppercaseGroup" *ngIf="isCurrentVowel">
-        <span>{{ isUppercaseGroup ? 'LONG' : 'SHORT' }}</span>
-      </div>
-
-      <!-- Step counter -->
-      <div class="step-badge">
-        <span class="step-current">{{ (index % 26) + 1 }}</span>
-        <span class="step-divider">/</span>
-        <span class="step-total">26</span>
-      </div>
+      <button class="lt-close-btn" (click)="closePopup()" aria-label="Back to home">← Back</button>
     </div>
   </header>
 
-  <!-- ============ MAIN ============ -->  <div class="pp-main">
+  <!-- ══ MAIN CONTENT ══ -->
+  <div class="lt-main">
+    <div class="lt-grid">
 
-    <!-- LEFT: Practice Word -->
-    <div class="pp-left">
-      <div class="section-tag">
-        <span class="tag-dot"></span> Practice Word
-      </div>
-      <div class="word-card">
-        <div class="word-img-wrap">
-          <div class="video-frame square">
-            <video [src]="current.imgSrc" autoplay loop muted preload="auto" playsinline>
-              Your browser does not support the video tag.
-            </video>
+      <!-- ─ LEFT: Letter Card ─ -->
+      <div class="lt-col lt-col-left">
+
+        <div class="lt-letter-card">
+          <div class="lt-card-cur-header">CURRENT LETTER</div>
+
+          <!-- Background animation video -->
+          <video #animVideo class="lt-anim-video-bg" muted playsinline loop autoplay></video>
+
+          <button class="lt-audio-btn" (click)="playWordAudio()" title="Hear word">
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor"/>
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <div class="lt-card-spacer"></div>
+
+          <!-- IPA -->
+          <div class="lt-ipa-pill">
+            <ng-container *ngIf="isCurrentVowel && currentVowelCard">/ {{ currentVowelCard.ipaSymbol }} /</ng-container>
+            <ng-container *ngIf="!isCurrentVowel && currentConsonantCard">/ {{ currentConsonantCard.ipaSymbol }} /</ng-container>
           </div>
         </div>
 
-        <div class="word-text">{{ current.word }}</div>
-        <div class="phonetic-pill">{{ current.phonetics }}</div>
-
-        <div class="image-container">
-          <span class="btn-with-rings">
-            <span class="ring" aria-hidden="true"></span>
-            <span class="ring" aria-hidden="true"></span>
-            <img src="assets/pronunciation/audio.png"
-                 alt="Play audio"
-                 class="round-image"
-                 [class.disabled]="isVideoPlaying"
-                 [style.pointer-events]="isVideoPlaying ? 'none' : 'auto'"
-                 [style.opacity]="isVideoPlaying ? '0.5' : '1'"
-                 (click)="!isVideoPlaying && playWordAudio()">
-          </span>
+        <!-- Navigation -->
+        <div class="lt-nav-row">
+          <button class="lt-nav-prev" (click)="prev()" [disabled]="index === 0">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+              <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Prev
+          </button>
+          <button class="lt-nav-home" (click)="goTo(0)" title="Start over">🏠</button>
+          <button class="lt-nav-next" (click)="next()" [disabled]="index >= items.length - 1">
+            Next
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+              <path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- CENTER: Mouth Video Player -->
-    <div class="pp-center">
-      <div class="section-tag">
-        <span class="tag-dot tag-dot-accent"></span> Lip Movement
-      </div>
+      <!-- ─ CENTER: Video ─ -->
+      <div class="lt-col lt-col-center">
+        <div class="lt-video-card" [class.is-playing]="isVideoPlaying && !isVideoPaused">
 
-      <div class="word-card center-card" [class.is-playing]="isVideoPlaying && !isVideoPaused">
-        <div class="center-media">
-          <span class="aura" aria-hidden="true"></span>
-
-          <!-- Now-playing badge -->
-          <span class="now-playing" *ngIf="isVideoPlaying && !isVideoPaused" aria-live="polite">
-            <span class="np-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-            <ng-container [ngSwitch]="playingPhase">
-              <span *ngSwitchCase="'short-a'">Short A &nbsp;/æ/</span>
-              <span *ngSwitchCase="'long-a'">Long A &nbsp;/e&#618;/</span>
-              <span *ngSwitchDefault>Playing</span>
-            </ng-container>
-          </span>
-
-          <!-- Mouth video -->
-          <video #centerVideo
-                 class="media-rounded mouth-video"
-                 (ended)="onVideoEnded()"
-                 muted
-                 playsinline>
-            Your browser does not support the video tag.
-          </video>
-
-        </div><!-- /center-media -->
-
-        <!-- Phase labels — only for letter A/a -->
-       
-        <div class="phase-label-bar" [class.phase-label-hidden]="!isLetterA">
-          <!-- Uppercase A: Shows only Long A -->
-          <ng-container *ngIf="isUpperCaseA">
-            <span class="phase-tag long-a" [class.active]="playingPhase === 'long-a'">
-              <span class="pt-icon">&#9651;</span>
-              Long&nbsp;A &nbsp;/e&#618;/ &mdash; &ldquo;angel&rdquo;
-            </span>
-          </ng-container>
-          
-          <!-- Lowercase a: Shows only Short A -->
-          <ng-container *ngIf="!isUpperCaseA">
-            <span class="phase-tag short-a" [class.active]="playingPhase === 'short-a'">
-              <span class="pt-icon">&#9651;</span>
-              Short&nbsp;A &nbsp;/æ/ &mdash; &ldquo;apple&rdquo;
-            </span>
-          </ng-container>
-        </div>
-
-        <!-- Controls -->
-        <div class="controls-row">
-          <!-- Play / Pause button -->
-          <span class="btn-with-rings" [class.is-playing]="isVideoPlaying && !isVideoPaused">
-            <span class="ring" aria-hidden="true"></span>
-            <span class="ring" aria-hidden="true"></span>
-            <img class="listen-img"
-                 [src]="playIcon"
-                 [alt]="isVideoPaused ? 'Resume' : isVideoPlaying ? 'Pause' : 'Play'"
-                 role="button"
-                 tabindex="0"
-                 (click)="onPlayClick()"
-                 (keydown.enter)="onPlayClick()"/>
-          </span>
-
-          <!-- Case toggle: A–Z / a–z - only show for vowels -->
-          <div class="case-toggle-group" aria-label="Letter case" *ngIf="isCurrentVowel">
-            <button class="case-toggle-btn"
-                    [class.active]="isUppercaseGroup"
-                    (click)="!isUppercaseGroup && toggleCase()"
-                    [attr.aria-pressed]="isUppercaseGroup"
-                    title="Uppercase A–Z">
-              A&ndash;Z
-            </button>
-            <button class="case-toggle-btn"
-                    [class.active]="!isUppercaseGroup"
-                    (click)="isUppercaseGroup && toggleCase()"
-                    [attr.aria-pressed]="!isUppercaseGroup"
-                    title="Lowercase a–z">
-              a&ndash;z
-            </button>
+          <div class="lt-watch-row">
+            <span class="lt-spk">🔊</span>
+            <span class="lt-watch-text">Watch my mouth and <strong class="lt-repeat-word">repeat!</strong></span>
+            <span class="lt-spk">🔊</span>
           </div>
-        </div>
 
-      </div><!-- /center-card -->
-    </div><!-- /pp-center -->
-
-    <!-- RIGHT: Letter Info -->
-    <div class="pp-right">
-      <div class="section-tag">
-        <span class="tag-dot"></span> Letter Info
-      </div>
-
-      <div class="letter-info-card">
-
-        <!-- Big letter badge -->
-        <div class="big-letter-wrap">
-          <span class="big-letter"
-                [class.is-vowel]="isVowel(current.letter)"
-                [class.is-upper]="isUppercase(current.letter)">
-            {{ current.letter }}
-          </span>
-          <span class="letter-word-tag">{{ current.word }}</span>
-        </div>
-
-        <!-- A-sounds legend (visible for A / a only) -->
-        <div class="a-legend" *ngIf="isLetterA">
-          <div class="a-legend-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
-
-          <!-- Uppercase A: Shows Long A only -->
-          <ng-container *ngIf="isUpperCaseA">
-            <div class="a-sound-row" [class.playing]="playingPhase === 'long-a'">
-              <span class="sound-num">1</span>
-              <div class="sound-detail">
-                <span class="sound-name">Long A</span>
-                <span class="sound-ipa">/e&#618;/</span>
-                <span class="sound-ex">&ldquo;angel&rdquo;</span>
+          <!-- Video + Hint card side by side -->
+          <div class="lt-center-body">
+            <div class="lt-ring-wrap" [class.playing]="isVideoPlaying && !isVideoPaused">
+              <div class="lt-ring">
+                <video #centerVideo class="lt-video-src" (ended)="onVideoEnded()" muted playsinline></video>
+                <canvas #videoCanvas class="lt-video"></canvas>
               </div>
             </div>
-            <p class="a-hint">Press Play to hear the Long A sound.</p>
-          </ng-container>
 
-          <!-- Lowercase a: Shows Short A only -->
-          <ng-container *ngIf="!isUpperCaseA">
-            <div class="a-sound-row" [class.playing]="playingPhase === 'short-a'">
-              <span class="sound-num">1</span>
-              <div class="sound-detail">
-                <span class="sound-name">Short A</span>
-                <span class="sound-ipa">/æ/</span>
-                <span class="sound-ex">&ldquo;apple&rdquo;</span>
+          </div>
+
+          <!-- Soundwave -->
+          <div class="lt-wave" [class.lt-wave-active]="isVideoPlaying && !isVideoPaused">
+            <span class="sw" *ngFor="let b of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]"></span>
+          </div>
+
+          <!-- Play / Pause -->
+          <div class="lt-play-wrap">
+            <button class="lt-play-btn" (click)="onPlayClick()" [attr.aria-label]="isVideoPlaying && !isVideoPaused ? 'Pause' : 'Play Sound'">
+              <!-- Speaker icon for idle/paused -->
+              <svg *ngIf="!isVideoPlaying || isVideoPaused" viewBox="0 0 24 24" fill="white" width="32" height="32">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+              <!-- Pause icon while playing -->
+              <svg *ngIf="isVideoPlaying && !isVideoPaused" viewBox="0 0 24 24" fill="white" width="32" height="32">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+            </button>
+            <span class="lt-play-label">{{ isVideoPlaying && !isVideoPaused ? 'Pause' : 'Play Sound' }}</span>
+          </div>
+
+          <!-- Long / Short toggle -->
+          <div class="lt-ls-group" *ngIf="isCurrentVowel">
+            <button class="lt-ls-btn lt-ls-long" [class.lt-ls-active]="isUppercaseGroup"
+                    (click)="!isUppercaseGroup && toggleCase()">
+              🔴 Long Sound
+            </button>
+            <button class="lt-ls-btn lt-ls-short" [class.lt-ls-active]="!isUppercaseGroup"
+                    (click)="isUppercaseGroup && toggleCase()">
+              🔵 Short Sound
+            </button>
+          </div>
+
+        </div><!-- /lt-video-card -->
+
+        <!-- Bottom counter -->
+        <!-- Learning Steps Bar -->
+        <div class="lt-steps-bar">
+          <div class="lt-steps-title">✦ YOUR LEARNING STEPS ✦</div>
+          <div class="lt-steps-row">
+
+            <div class="lt-step lt-step-active">
+              <div class="lt-step-circle lt-step-circle-1">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
               </div>
+              <div class="lt-step-label">Watch<br>Mouth</div>
             </div>
-            <p class="a-hint">Press Play to hear the Short A sound.</p>
-          </ng-container>
-        </div>
 
-        <!-- Generic vowel note (E, I, O, U) -->
-        <div class="vowel-note" *ngIf="isVowel(current.letter) && !isLetterA">
-          <div class="note-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
-          <div class="note-row">
-            <span class="note-num">V</span>
-            <div class="note-detail">
-              <span class="note-name">Vowel</span>
-              <span class="note-ipa">{{ current.phonetics }}</span>
-              <span class="note-ex">&ldquo;{{ current.word }}&rdquo;</span>
+            <div class="lt-step-arrow">›</div>
+
+            <div class="lt-step">
+              <div class="lt-step-circle lt-step-circle-2">2</div>
+              <div class="lt-step-label">Play<br>Sound</div>
+            </div>
+
+            <div class="lt-step-arrow">›</div>
+
+            <div class="lt-step">
+              <div class="lt-step-circle lt-step-circle-3">3</div>
+              <div class="lt-step-label">Repeat<br>After Me</div>
+            </div>
+
+            <div class="lt-step-arrow">›</div>
+
+            <div class="lt-step">
+              <div class="lt-step-circle lt-step-circle-4">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                </svg>
+              </div>
+              <div class="lt-step-label">Well<br>Done!</div>
+            </div>
+
+          </div>
+          <div class="lt-steps-counter">
+            Letter {{ current.letter.toUpperCase() }} &nbsp;|&nbsp; {{ (index % totalLetters) + 1 }} of {{ totalLetters }}
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ RIGHT: Alphabets ─ -->
+      <div class="lt-col lt-col-right">
+        <div class="lt-alpha-card">
+
+          <!-- Current letter big display -->
+          <div class="lt-alpha-cur-section">
+            <div class="lt-alpha-cur-label">CURRENT LETTER</div>
+            <div class="lt-alpha-cur-row">
+              <button class="lt-alpha-arrow lt-alpha-arrow-prev" (click)="prev()" [disabled]="index === 0">←</button>
+              <div class="lt-alpha-cur-letter">
+                <span class="lt-cur-spark">✦</span>
+                {{ current.letter.toUpperCase() }}
+                <span class="lt-cur-spark">✦</span>
+              </div>
+              <button class="lt-alpha-arrow lt-alpha-arrow-next" (click)="next()" [disabled]="index >= items.length - 1">→</button>
             </div>
           </div>
-          <p class="note-hint">Press Play to hear the sound.</p>
-        </div>
 
-        <!-- Consonant note (non-vowel letters) -->
-        <div class="consonant-note" *ngIf="!isVowel(current.letter)">
-          <div class="note-title">Sound for &ldquo;{{ current.letter }}&rdquo;</div>
-          <div class="note-row">
-            <span class="note-num">C</span>
-            <div class="note-detail">
-              <span class="note-name">Consonant</span>
-              <span class="note-ipa">{{ current.phonetics }}</span>
-              <span class="note-ex">&ldquo;{{ current.word }}&rdquo;</span>
+          <!-- VOWELS section -->
+          <div class="lt-alpha-section lt-alpha-vowels-section">
+            <div class="lt-alpha-head">
+              <span class="lt-alpha-spark">✦</span>
+              <span class="lt-alpha-title lt-alpha-title-vowel">VOWELS</span>
+              <span class="lt-alpha-spark">✦</span>
+            </div>
+            <div class="lt-alpha-grid">
+              <button *ngFor="let ltr of vowelLetters"
+                      class="lt-alpha-btn lt-alpha-vowel-btn"
+                      [class.lt-alpha-active-vowel]="isActiveAlpha(ltr)"
+                      (click)="goToLetter(ltr)">
+                {{ ltr }}
+              </button>
             </div>
           </div>
-          <p class="note-hint">Press Play to hear the sound.</p>
-        </div>
 
-      </div><!-- /letter-info-card -->
-    </div><!-- /pp-right -->
+          <!-- CONSONANTS section -->
+          <div class="lt-alpha-section lt-alpha-cons-section">
+            <div class="lt-alpha-head">
+              <span class="lt-alpha-spark">✦</span>
+              <span class="lt-alpha-title lt-alpha-title-cons">CONSONANTS</span>
+              <span class="lt-alpha-spark">✦</span>
+            </div>
+            <div class="lt-alpha-grid">
+              <button *ngFor="let ltr of consonantLetters"
+                      class="lt-alpha-btn lt-alpha-cons-btn"
+                      [class.lt-alpha-active-cons]="isActiveAlpha(ltr)"
+                      (click)="goToLetter(ltr)">
+                {{ ltr }}
+              </button>
+            </div>
+          </div>
 
-  </div><!-- /pp-main -->
+          <!-- Tip -->
+          <div class="lt-alpha-tip">
+            <span>⭐</span>
+            <span>Tap a letter to explore sounds!</span>
+            <span>⭐</span>
+          </div>
 
-  <!-- ============ STEPPER ============ -->
-  <div class="stepper-wrap">
-    <nav class="pp-stepper"
-         [attr.aria-label]="isUppercaseGroup ? 'Uppercase letters A–Z' : 'Lowercase letters a–z'">
+        </div><!-- /lt-alpha-card -->
+      </div><!-- /lt-col-right -->
 
-      <!-- Uppercase letters -->
-      <ng-container *ngIf="isUppercaseGroup">
-        <button *ngFor="let item of items.slice(0,26); let i = index"
-                type="button"
-                class="step-dot"
-                [class.is-current]="i === index"
-                [class.is-done]="i < index"
-                [class.is-vowel]="isVowel(item.letter)"
-                [attr.aria-label]="'Letter ' + item.letter + ' — ' + item.word"
-                [attr.aria-current]="i === index ? 'true' : null"
-                [attr.title]="item.letter + ' · ' + item.word"
-                (click)="goTo(i)">
-          <span>{{ item.letter }}</span>
-        </button>
-      </ng-container>
+    </div><!-- /lt-grid -->
+  </div><!-- /lt-main -->
 
-      <!-- Lowercase letters -->
-      <ng-container *ngIf="!isUppercaseGroup">
-        <button *ngFor="let item of items.slice(26,52); let i = index"
-                type="button"
-                class="step-dot"
-                [class.is-current]="i + 26 === index"
-                [class.is-done]="i + 26 < index"
-                [class.is-vowel]="isVowel(item.letter)"
-                [attr.aria-label]="'Letter ' + item.letter + ' — ' + item.word"
-                [attr.aria-current]="i + 26 === index ? 'true' : null"
-                [attr.title]="item.letter + ' · ' + item.word"
-                (click)="goTo(i + 26)">
-          <span>{{ item.letter }}</span>
-        </button>
-      </ng-container>
+  <!-- Decorative music notes -->
+  <div class="lt-deco-note lt-deco-note-1">🎵</div>
+  <div class="lt-deco-note lt-deco-note-2">♪</div>
+  <div class="lt-deco-note lt-deco-note-3">♪</div>
 
-    </nav>
-  </div>
-
-  <!-- Keyboard hints -->
-  <div class="kbd-hints" aria-label="Keyboard shortcuts">
-    <span class="kbd-group"><kbd>Space</kbd><em>play / pause</em></span>
-    <span class="kbd-sep" aria-hidden="true"></span>
-    <span class="kbd-group"><kbd>&larr;</kbd><kbd>&rarr;</kbd><em>letter</em></span>
-  </div>
+  <!-- Settings button -->
+  <button class="lt-settings-btn" title="Settings">⚙️</button>
 
 </div>
-
-<button aria-label="Close" class="user-guide-close-icon" (click)="closePopup()">&#215;</button>

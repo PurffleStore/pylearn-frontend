@@ -19,6 +19,7 @@ import { HeaderComponent } from './shared/header/header.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { PronunciationComponent } from './pronunciation/pronunciation.component';
 import { LipTrainerComponent } from './lip-trainer/lip-trainer.component';
+import { LipTrainerCardsModule } from './lip-trainer/lip-trainer-cards.module';
 import { FooterComponent } from './footer/footer.component';
 import { ButtonComponent } from './shared/button/button.component';
 import { StaticChatComponent } from './staticchat/staticchat.component';
@@ -49,7 +50,8 @@ import { StudentPortalComponent } from './student-portal/student-portal.componen
     MatCardModule,
     FooterComponent,
     HeaderComponent,
-    ButtonComponent
+    ButtonComponent,
+    LipTrainerCardsModule
   ],
   providers: [],
   bootstrap: [AppComponent]
